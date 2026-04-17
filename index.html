@@ -21,7 +21,7 @@
 
     .card {
       width: 100%;
-      max-width: 980px;
+      max-width: 1100px;
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid #334155;
       border-radius: 16px;
@@ -59,11 +59,14 @@
     }
 
     form {
-      margin-top: 28px;
       display: flex;
       flex-direction: column;
       gap: 12px;
       text-align: left;
+    }
+
+    .login-form {
+      margin-top: 28px;
       max-width: 380px;
       margin-left: auto;
       margin-right: auto;
@@ -76,7 +79,7 @@
       display: block;
     }
 
-    input {
+    input, select {
       width: 100%;
       padding: 12px 14px;
       border-radius: 10px;
@@ -87,7 +90,7 @@
       outline: none;
     }
 
-    input:focus {
+    input:focus, select:focus {
       border-color: #38bdf8;
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
     }
@@ -221,6 +224,7 @@
       text-align: left;
       color: #e2e8f0;
       white-space: nowrap;
+      vertical-align: top;
     }
 
     th {
@@ -267,6 +271,45 @@
       font-style: italic;
     }
 
+    .asociado-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .form-card {
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.35);
+      margin-bottom: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .helper {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-top: -4px;
+    }
+
+    @media (max-width: 800px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 640px) {
       .card {
         padding: 22px;
@@ -291,7 +334,7 @@
     </div>
 
     <div id="loginSection">
-      <form id="loginForm">
+      <form id="loginForm" class="login-form">
         <div>
           <label for="email">Correo electrónico</label>
           <input
@@ -618,7 +661,7 @@
 
       const { data, error } = await supabaseClient
         .from('asociados')
-        .select('id, nombre, empresa, telefono, estado')
+        .select('id, contacto, cargo, telefono, empresa, actividad, direccion, email, estado')
         .order('id', { ascending: true });
 
       if (error) {
@@ -636,23 +679,101 @@
       const rows = data.map(item => `
         <tr>
           <td>${item.id}</td>
-          <td>${item.nombre || ''}</td>
-          <td>${item.empresa || ''}</td>
+          <td>${item.contacto || ''}</td>
+          <td>${item.cargo || ''}</td>
           <td>${item.telefono || ''}</td>
+          <td>${item.empresa || ''}</td>
+          <td>${item.actividad || ''}</td>
+          <td>${item.direccion || ''}</td>
+          <td>${item.email || ''}</td>
           <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
         </tr>
       `).join('');
 
       setView('Asociados', `
-        <p>Listado real de asociados cargado desde Supabase.</p>
+        <div class="asociado-header">
+          <div>
+            <p style="margin:0;">Listado real de asociados cargado desde Supabase.</p>
+          </div>
+          <div>
+            <button id="nuevoAsociadoBtn">➕ Nuevo asociado</button>
+          </div>
+        </div>
+
+        <div id="nuevoAsociadoFormWrap" class="form-card hidden">
+          <h3>Nuevo asociado</h3>
+          <form id="nuevoAsociadoForm">
+            <div class="form-grid">
+              <div>
+                <label for="nuevo_contacto">Contacto</label>
+                <input type="text" id="nuevo_contacto" required />
+              </div>
+
+              <div>
+                <label for="nuevo_cargo">Cargo</label>
+                <input type="text" id="nuevo_cargo" />
+              </div>
+
+              <div>
+                <label for="nuevo_telefono">Teléfono</label>
+                <input type="text" id="nuevo_telefono" required />
+              </div>
+
+              <div>
+                <label for="nuevo_empresa">Empresa</label>
+                <input type="text" id="nuevo_empresa" required />
+              </div>
+
+              <div>
+                <label for="nuevo_actividad">Actividad</label>
+                <input type="text" id="nuevo_actividad" />
+              </div>
+
+              <div>
+                <label for="nuevo_email">Email</label>
+                <input type="email" id="nuevo_email" />
+              </div>
+
+              <div class="full-width">
+                <label for="nuevo_direccion">Dirección</label>
+                <input type="text" id="nuevo_direccion" />
+              </div>
+
+              <div>
+                <label for="nuevo_estado">Estado</label>
+                <select id="nuevo_estado">
+                  <option value="activo">activo</option>
+                  <option value="pendiente">pendiente</option>
+                  <option value="dormido">dormido</option>
+                  <option value="perdido">perdido</option>
+                  <option value="baja">baja</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="helper">Formulario simple: Contacto, Cargo, Teléfono, Empresa, Actividad, Dirección, Email.</div>
+
+            <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
+              <button type="submit">Guardar asociado</button>
+              <button type="button" id="cancelarNuevoAsociadoBtn" class="secondary-btn">Cancelar</button>
+            </div>
+          </form>
+
+          <div id="nuevoAsociadoMsg" class="message"></div>
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Nombre</th>
-                <th>Empresa</th>
+                <th>Contacto</th>
+                <th>Cargo</th>
                 <th>Teléfono</th>
+                <th>Empresa</th>
+                <th>Actividad</th>
+                <th>Dirección</th>
+                <th>Email</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -662,6 +783,57 @@
           </table>
         </div>
       `);
+
+      const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
+      const nuevoAsociadoFormWrap = document.getElementById('nuevoAsociadoFormWrap');
+      const cancelarNuevoAsociadoBtn = document.getElementById('cancelarNuevoAsociadoBtn');
+      const nuevoAsociadoForm = document.getElementById('nuevoAsociadoForm');
+      const nuevoAsociadoMsg = document.getElementById('nuevoAsociadoMsg');
+
+      nuevoAsociadoBtn.addEventListener('click', () => {
+        nuevoAsociadoFormWrap.classList.remove('hidden');
+      });
+
+      cancelarNuevoAsociadoBtn.addEventListener('click', () => {
+        nuevoAsociadoFormWrap.classList.add('hidden');
+        nuevoAsociadoMsg.textContent = '';
+        nuevoAsociadoForm.reset();
+      });
+
+      nuevoAsociadoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        nuevoAsociadoMsg.textContent = 'Guardando asociado...';
+        nuevoAsociadoMsg.className = 'message';
+
+        const payload = {
+          contacto: document.getElementById('nuevo_contacto').value.trim(),
+          cargo: document.getElementById('nuevo_cargo').value.trim(),
+          telefono: document.getElementById('nuevo_telefono').value.trim(),
+          empresa: document.getElementById('nuevo_empresa').value.trim(),
+          actividad: document.getElementById('nuevo_actividad').value.trim(),
+          direccion: document.getElementById('nuevo_direccion').value.trim(),
+          email: document.getElementById('nuevo_email').value.trim(),
+          estado: document.getElementById('nuevo_estado').value
+        };
+
+        const { error: insertError } = await supabaseClient
+          .from('asociados')
+          .insert([payload]);
+
+        if (insertError) {
+          nuevoAsociadoMsg.textContent = 'Error al guardar: ' + insertError.message;
+          nuevoAsociadoMsg.className = 'message error';
+          return;
+        }
+
+        nuevoAsociadoMsg.textContent = 'Asociado guardado correctamente';
+        nuevoAsociadoMsg.className = 'message success';
+
+        setTimeout(async () => {
+          await renderAsociadosView();
+        }, 500);
+      });
     }
 
     function renderMenu(role) {
