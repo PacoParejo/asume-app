@@ -21,7 +21,7 @@
 
     .card {
       width: 100%;
-      max-width: 520px;
+      max-width: 720px;
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid #334155;
       border-radius: 16px;
@@ -48,7 +48,7 @@
       border: 1px solid #334155;
       border-radius: 12px;
       text-align: left;
-      max-width: 320px;
+      max-width: 360px;
       color: #e2e8f0;
       line-height: 1.8;
     }
@@ -59,6 +59,9 @@
       flex-direction: column;
       gap: 12px;
       text-align: left;
+      max-width: 380px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     label {
@@ -138,6 +141,32 @@
       margin-top: 16px;
     }
 
+    .role-badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #93c5fd;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .panel {
+      margin-top: 20px;
+      text-align: left;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.35);
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      color: #38bdf8;
+    }
+
     .footer {
       margin-top: 28px;
       color: #cbd5e1;
@@ -188,6 +217,13 @@
     <div id="welcomeSection" class="welcome hidden">
       <h2>Bienvenido a ASUME</h2>
       <p id="userInfo"></p>
+      <div id="roleBadge" class="role-badge"></div>
+
+      <div id="rolePanel" class="panel">
+        <h3>Panel de acceso</h3>
+        <div id="roleContent"></div>
+      </div>
+
       <button id="logoutBtn" class="logout-btn">Cerrar sesión</button>
     </div>
 
@@ -207,6 +243,8 @@
     const welcomeSection = document.getElementById('welcomeSection');
     const userInfo = document.getElementById('userInfo');
     const logoutBtn = document.getElementById('logoutBtn');
+    const roleBadge = document.getElementById('roleBadge');
+    const roleContent = document.getElementById('roleContent');
 
     function showMessage(text, type = '') {
       message.textContent = text;
@@ -214,10 +252,109 @@
       if (type) message.classList.add(type);
     }
 
-    function showWelcome(user) {
+    function getRoleContent(role) {
+      if (role === 'superadmin') {
+        return `
+          <strong>Acceso total activado.</strong><br><br>
+          Puedes gestionar:
+          <ul>
+            <li>Usuarios y roles</li>
+            <li>Asociados</li>
+            <li>Tareas</li>
+            <li>Contabilidad</li>
+            <li>Subvenciones</li>
+            <li>Marketplace</li>
+          </ul>
+        `;
+      }
+
+      if (role === 'presidente') {
+        return `
+          <strong>Panel de Presidencia.</strong><br><br>
+          Puedes ver:
+          <ul>
+            <li>Resumen general</li>
+            <li>Alertas estratégicas</li>
+            <li>Estado de la asociación</li>
+          </ul>
+        `;
+      }
+
+      if (role === 'tesorero') {
+        return `
+          <strong>Panel de Tesorería.</strong><br><br>
+          Puedes ver:
+          <ul>
+            <li>Cuotas</li>
+            <li>Recibos pendientes</li>
+            <li>Morosidad</li>
+            <li>Remesas</li>
+          </ul>
+        `;
+      }
+
+      if (role === 'secretario') {
+        return `
+          <strong>Panel de Secretaría.</strong><br><br>
+          Puedes ver:
+          <ul>
+            <li>Reuniones</li>
+            <li>Actas</li>
+            <li>Seguimiento de tareas</li>
+          </ul>
+        `;
+      }
+
+      if (role === 'junta') {
+        return `
+          <strong>Panel de Junta Directiva.</strong><br><br>
+          Puedes ver:
+          <ul>
+            <li>Tareas compartidas</li>
+            <li>Documentación interna</li>
+            <li>Acciones en curso</li>
+          </ul>
+        `;
+      }
+
+      return `
+        <strong>Panel de asociado.</strong><br><br>
+        Puedes ver:
+        <ul>
+          <li>Tu ficha</li>
+          <li>Tus pagos</li>
+          <li>Noticias y recursos</li>
+        </ul>
+      `;
+    }
+
+    async function getUserProfile(userId) {
+      const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('email, role')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error al leer perfil:', error);
+        return null;
+      }
+
+      return data;
+    }
+
+    async function showWelcome(user) {
       loginSection.classList.add('hidden');
       welcomeSection.classList.remove('hidden');
-      userInfo.textContent = `Has iniciado sesión como: ${user.email}`;
+
+      const profile = await getUserProfile(user.id);
+
+      const email = profile?.email || user.email;
+      const role = profile?.role || 'asociado';
+
+      userInfo.textContent = `Has iniciado sesión como: ${email}`;
+      roleBadge.textContent = `Rol: ${role}`;
+      roleContent.innerHTML = getRoleContent(role);
     }
 
     function showLogin() {
@@ -228,13 +365,14 @@
 
     async function checkSession() {
       const { data, error } = await supabaseClient.auth.getSession();
+
       if (error) {
         console.error(error);
         return;
       }
 
       if (data.session && data.session.user) {
-        showWelcome(data.session.user);
+        await showWelcome(data.session.user);
       } else {
         showLogin();
       }
@@ -259,15 +397,17 @@
       }
 
       showMessage('Login correcto', 'success');
-      showWelcome(data.user);
+      await showWelcome(data.user);
     });
 
     logoutBtn.addEventListener('click', async () => {
       const { error } = await supabaseClient.auth.signOut();
+
       if (error) {
         showMessage('Error al cerrar sesión: ' + error.message, 'error');
         return;
       }
+
       showLogin();
     });
 
