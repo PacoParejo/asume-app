@@ -21,7 +21,7 @@
 
     .card {
       width: 100%;
-      max-width: 720px;
+      max-width: 900px;
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid #334155;
       border-radius: 16px;
@@ -36,13 +36,23 @@
       color: #38bdf8;
     }
 
+    h2 {
+      color: #38bdf8;
+      margin-top: 0;
+    }
+
+    h3 {
+      color: #38bdf8;
+      margin-top: 0;
+    }
+
     .subtitle {
       color: #cbd5e1;
       margin-bottom: 24px;
       font-size: 18px;
     }
 
-    .box {
+    .intro-box {
       margin: 24px auto;
       padding: 18px;
       border: 1px solid #334155;
@@ -88,7 +98,6 @@
     }
 
     button {
-      margin-top: 8px;
       padding: 13px 16px;
       border: none;
       border-radius: 10px;
@@ -101,6 +110,11 @@
 
     button:hover {
       opacity: 0.95;
+    }
+
+    .secondary-btn {
+      background: #f8fafc;
+      color: #0f172a;
     }
 
     .message {
@@ -119,7 +133,7 @@
     }
 
     .hidden {
-      display: none;
+      display: none !important;
     }
 
     .welcome {
@@ -128,17 +142,6 @@
       border: 1px solid #334155;
       border-radius: 12px;
       background: rgba(15, 23, 42, 0.7);
-    }
-
-    .welcome h2 {
-      color: #38bdf8;
-      margin-top: 0;
-    }
-
-    .logout-btn {
-      background: #f8fafc;
-      color: #0f172a;
-      margin-top: 16px;
     }
 
     .role-badge {
@@ -162,15 +165,63 @@
       background: rgba(2, 6, 23, 0.35);
     }
 
-    .panel h3 {
-      margin-top: 0;
-      color: #38bdf8;
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .menu-btn {
+      width: 100%;
+    }
+
+    .view-box {
+      margin-top: 20px;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      background: rgba(15, 23, 42, 0.55);
+      text-align: left;
+    }
+
+    .view-box p {
+      color: #cbd5e1;
+      line-height: 1.7;
     }
 
     .footer {
       margin-top: 28px;
       color: #cbd5e1;
       font-size: 14px;
+    }
+
+    .user-line {
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
+
+    ul {
+      margin-top: 10px;
+      line-height: 1.8;
+    }
+
+    .top-actions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
     }
   </style>
 </head>
@@ -179,7 +230,7 @@
     <h1>🚀 APP ASUME</h1>
     <p class="subtitle">La asociación empresarial del futuro empieza aquí</p>
 
-    <div class="box">
+    <div class="intro-box">
       ✔️ Gestión de asociados<br />
       ✔️ Tareas y seguimiento<br />
       ✔️ Subvenciones<br />
@@ -216,15 +267,27 @@
 
     <div id="welcomeSection" class="welcome hidden">
       <h2>Bienvenido a ASUME</h2>
-      <p id="userInfo"></p>
+      <p id="userInfo" class="user-line"></p>
       <div id="roleBadge" class="role-badge"></div>
 
       <div id="rolePanel" class="panel">
         <h3>Panel de acceso</h3>
-        <div id="roleContent"></div>
+        <p id="roleSummary"></p>
+
+        <div id="menuButtons" class="menu-grid"></div>
+
+        <div id="viewBox" class="view-box">
+          <h3 id="viewTitle">Dashboard</h3>
+          <div id="viewContent">
+            <p>Selecciona una opción del panel para empezar.</p>
+          </div>
+        </div>
       </div>
 
-      <button id="logoutBtn" class="logout-btn">Cerrar sesión</button>
+      <div class="top-actions">
+        <button id="homeBtn" class="secondary-btn">Inicio</button>
+        <button id="logoutBtn" class="secondary-btn">Cerrar sesión</button>
+      </div>
     </div>
 
     <p class="footer">Creado por Globalum Marketing 😏</p>
@@ -234,7 +297,6 @@
   <script>
     const supabaseUrl = 'https://ijsntfkhuunaauqvjeve.supabase.co';
     const supabaseKey = 'sb_publishable_PIbkEoS7eK8CdD4DtJcepQ_5I7JCmjm';
-
     const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     const loginForm = document.getElementById('loginForm');
@@ -243,8 +305,12 @@
     const welcomeSection = document.getElementById('welcomeSection');
     const userInfo = document.getElementById('userInfo');
     const logoutBtn = document.getElementById('logoutBtn');
+    const homeBtn = document.getElementById('homeBtn');
     const roleBadge = document.getElementById('roleBadge');
-    const roleContent = document.getElementById('roleContent');
+    const roleSummary = document.getElementById('roleSummary');
+    const menuButtons = document.getElementById('menuButtons');
+    const viewTitle = document.getElementById('viewTitle');
+    const viewContent = document.getElementById('viewContent');
 
     function showMessage(text, type = '') {
       message.textContent = text;
@@ -252,80 +318,257 @@
       if (type) message.classList.add(type);
     }
 
-    function getRoleContent(role) {
-      if (role === 'superadmin') {
-        return `
-          <strong>Acceso total activado.</strong><br><br>
-          Puedes gestionar:
-          <ul>
-            <li>Usuarios y roles</li>
-            <li>Asociados</li>
-            <li>Tareas</li>
-            <li>Contabilidad</li>
-            <li>Subvenciones</li>
-            <li>Marketplace</li>
-          </ul>
-        `;
-      }
+    function showLogin() {
+      welcomeSection.classList.add('hidden');
+      loginSection.classList.remove('hidden');
+      showMessage('');
+    }
 
-      if (role === 'presidente') {
-        return `
-          <strong>Panel de Presidencia.</strong><br><br>
-          Puedes ver:
-          <ul>
-            <li>Resumen general</li>
-            <li>Alertas estratégicas</li>
-            <li>Estado de la asociación</li>
-          </ul>
-        `;
-      }
+    function setView(title, html) {
+      viewTitle.textContent = title;
+      viewContent.innerHTML = html;
+    }
 
-      if (role === 'tesorero') {
-        return `
-          <strong>Panel de Tesorería.</strong><br><br>
-          Puedes ver:
+    function getRoleSummary(role) {
+      const map = {
+        superadmin: 'Acceso total activado. Puedes controlar toda la APP ASUME.',
+        presidente: 'Panel de Presidencia activo. Visión global y estratégica.',
+        tesorero: 'Panel de Tesorería activo. Control económico y cuotas.',
+        secretario: 'Panel de Secretaría activo. Reuniones, actas y seguimiento.',
+        junta: 'Panel de Junta Directiva activo. Gestión compartida.',
+        asociado: 'Panel de asociado activo. Acceso a tus recursos y datos.'
+      };
+      return map[role] || 'Panel de asociado activo.';
+    }
+
+    function getMenuForRole(role) {
+      const menus = {
+        superadmin: [
+          { key: 'dashboard', label: '🏠 Dashboard' },
+          { key: 'usuarios', label: '👥 Usuarios y roles' },
+          { key: 'asociados', label: '🏢 Asociados' },
+          { key: 'tareas', label: '✅ Tareas' },
+          { key: 'contabilidad', label: '💰 Contabilidad' },
+          { key: 'subvenciones', label: '📄 Subvenciones' },
+          { key: 'marketplace', label: '🛒 Marketplace' }
+        ],
+        presidente: [
+          { key: 'dashboard', label: '🏠 Dashboard' },
+          { key: 'resumen', label: '📊 Resumen general' },
+          { key: 'alertas', label: '🚨 Alertas' },
+          { key: 'reuniones', label: '🗓️ Reuniones' }
+        ],
+        tesorero: [
+          { key: 'dashboard', label: '🏠 Dashboard' },
+          { key: 'cuotas', label: '💳 Cuotas' },
+          { key: 'morosidad', label: '📉 Morosidad' },
+          { key: 'remesas', label: '🏦 Remesas' }
+        ],
+        secretario: [
+          { key: 'dashboard', label: '🏠 Dashboard' },
+          { key: 'actas', label: '📝 Actas' },
+          { key: 'reuniones', label: '🗓️ Reuniones' },
+          { key: 'seguimiento', label: '📌 Seguimiento' }
+        ],
+        junta: [
+          { key: 'dashboard', label: '🏠 Dashboard' },
+          { key: 'documentos', label: '📂 Documentos' },
+          { key: 'acciones', label: '⚙️ Acciones' },
+          { key: 'tareas', label: '✅ Tareas' }
+        ],
+        asociado: [
+          { key: 'dashboard', label: '🏠 Dashboard' },
+          { key: 'ficha', label: '🪪 Mi ficha' },
+          { key: 'pagos', label: '💳 Mis pagos' },
+          { key: 'recursos', label: '📚 Recursos' }
+        ]
+      };
+
+      return menus[role] || menus.asociado;
+    }
+
+    function getViewContent(key, role) {
+      const views = {
+        dashboard: `
+          <p>Este es el punto de control principal de la APP ASUME.</p>
+          <ul>
+            <li>Revisión rápida del estado general</li>
+            <li>Accesos directos a módulos</li>
+            <li>Próximos pasos del sistema</li>
+          </ul>
+        `,
+        usuarios: `
+          <p>Módulo preparado para gestionar usuarios y roles.</p>
+          <ul>
+            <li>Crear usuarios nuevos</li>
+            <li>Asignar roles</li>
+            <li>Bloquear o activar accesos</li>
+          </ul>
+        `,
+        asociados: `
+          <p>Aquí irá el módulo de asociados, que será el siguiente que construiremos.</p>
+          <ul>
+            <li>Listado de empresas</li>
+            <li>Alta de asociado</li>
+            <li>Edición de ficha</li>
+          </ul>
+        `,
+        tareas: `
+          <p>Módulo de tareas y seguimiento interno.</p>
+          <ul>
+            <li>Tareas pendientes</li>
+            <li>Responsables</li>
+            <li>Estado y avance</li>
+          </ul>
+        `,
+        contabilidad: `
+          <p>Panel económico de la asociación.</p>
           <ul>
             <li>Cuotas</li>
-            <li>Recibos pendientes</li>
+            <li>Recibos</li>
             <li>Morosidad</li>
             <li>Remesas</li>
           </ul>
-        `;
-      }
-
-      if (role === 'secretario') {
-        return `
-          <strong>Panel de Secretaría.</strong><br><br>
-          Puedes ver:
+        `,
+        subvenciones: `
+          <p>Radar de subvenciones y ayudas.</p>
           <ul>
-            <li>Reuniones</li>
-            <li>Actas</li>
-            <li>Seguimiento de tareas</li>
+            <li>Ayudas abiertas</li>
+            <li>Convocatorias futuras</li>
+            <li>Seguimiento</li>
           </ul>
-        `;
-      }
-
-      if (role === 'junta') {
-        return `
-          <strong>Panel de Junta Directiva.</strong><br><br>
-          Puedes ver:
+        `,
+        marketplace: `
+          <p>Espacio para el marketplace local tipo Amazon de barrio.</p>
           <ul>
-            <li>Tareas compartidas</li>
-            <li>Documentación interna</li>
-            <li>Acciones en curso</li>
+            <li>Productos de asociados</li>
+            <li>Ventas</li>
+            <li>Entrega local</li>
           </ul>
-        `;
-      }
+        `,
+        resumen: `
+          <p>Visión ejecutiva para Presidencia.</p>
+          <ul>
+            <li>Estado general</li>
+            <li>Actividad reciente</li>
+            <li>Indicadores clave</li>
+          </ul>
+        `,
+        alertas: `
+          <p>Panel de alertas importantes.</p>
+          <ul>
+            <li>Pagos pendientes</li>
+            <li>Tareas retrasadas</li>
+            <li>Incidencias activas</li>
+          </ul>
+        `,
+        reuniones: `
+          <p>Espacio para reuniones, convocatorias y planificación.</p>
+          <ul>
+            <li>Calendario</li>
+            <li>Orden del día</li>
+            <li>Seguimiento</li>
+          </ul>
+        `,
+        cuotas: `
+          <p>Control de cuotas mensuales y anuales.</p>
+          <ul>
+            <li>12 €/mes</li>
+            <li>120 €/año</li>
+            <li>Preferencia por remesa</li>
+          </ul>
+        `,
+        morosidad: `
+          <p>Seguimiento de asociados con pagos pendientes.</p>
+          <ul>
+            <li>Recordatorios</li>
+            <li>Histórico</li>
+            <li>Acciones de cobro</li>
+          </ul>
+        `,
+        remesas: `
+          <p>Gestión de cobros por domiciliación.</p>
+          <ul>
+            <li>Generación de remesa</li>
+            <li>Estado de cobro</li>
+            <li>Incidencias</li>
+          </ul>
+        `,
+        actas: `
+          <p>Panel de actas y acuerdos.</p>
+          <ul>
+            <li>Actas de reuniones</li>
+            <li>Histórico</li>
+            <li>Seguimiento de acuerdos</li>
+          </ul>
+        `,
+        seguimiento: `
+          <p>Seguimiento de acciones asignadas.</p>
+          <ul>
+            <li>Qué</li>
+            <li>Quién</li>
+            <li>Cuándo</li>
+            <li>Resultado</li>
+          </ul>
+        `,
+        documentos: `
+          <p>Biblioteca interna de documentos.</p>
+          <ul>
+            <li>Archivos compartidos</li>
+            <li>Documentación de junta</li>
+            <li>Material interno</li>
+          </ul>
+        `,
+        acciones: `
+          <p>Acciones estratégicas en marcha.</p>
+          <ul>
+            <li>Campañas</li>
+            <li>Seguimiento</li>
+            <li>Prioridades</li>
+          </ul>
+        `,
+        ficha: `
+          <p>Ficha personal y empresarial del asociado.</p>
+          <ul>
+            <li>Datos básicos</li>
+            <li>Información empresarial</li>
+            <li>Visibilidad online</li>
+          </ul>
+        `,
+        pagos: `
+          <p>Consulta de pagos y estado económico.</p>
+          <ul>
+            <li>Último pago</li>
+            <li>Próximo recibo</li>
+            <li>Estado de cuenta</li>
+          </ul>
+        `,
+        recursos: `
+          <p>Recursos exclusivos para el asociado.</p>
+          <ul>
+            <li>Noticias internas</li>
+            <li>Documentos</li>
+            <li>Píldoras y ayudas</li>
+          </ul>
+        `
+      };
 
-      return `
-        <strong>Panel de asociado.</strong><br><br>
-        Puedes ver:
-        <ul>
-          <li>Tu ficha</li>
-          <li>Tus pagos</li>
-          <li>Noticias y recursos</li>
-        </ul>
-      `;
+      return views[key] || `<p>Vista no disponible para el rol: <strong>${role}</strong>.</p>`;
+    }
+
+    function renderMenu(role) {
+      const items = getMenuForRole(role);
+      menuButtons.innerHTML = '';
+
+      items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'menu-btn';
+        btn.textContent = item.label;
+        btn.addEventListener('click', () => {
+          setView(item.label.replace(/^[^\s]+\s/, ''), getViewContent(item.key, role));
+        });
+        menuButtons.appendChild(btn);
+      });
     }
 
     async function getUserProfile(userId) {
@@ -354,13 +597,10 @@
 
       userInfo.textContent = `Has iniciado sesión como: ${email}`;
       roleBadge.textContent = `Rol: ${role}`;
-      roleContent.innerHTML = getRoleContent(role);
-    }
+      roleSummary.textContent = getRoleSummary(role);
 
-    function showLogin() {
-      welcomeSection.classList.add('hidden');
-      loginSection.classList.remove('hidden');
-      showMessage('');
+      renderMenu(role);
+      setView('Dashboard', getViewContent('dashboard', role));
     }
 
     async function checkSession() {
@@ -409,6 +649,12 @@
       }
 
       showLogin();
+    });
+
+    homeBtn.addEventListener('click', async () => {
+      const { data } = await supabaseClient.auth.getSession();
+      const role = data?.session?.user ? (await getUserProfile(data.session.user.id))?.role || 'asociado' : 'asociado';
+      setView('Dashboard', getViewContent('dashboard', role));
     });
 
     checkSession();
