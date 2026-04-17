@@ -21,7 +21,7 @@
 
     .card {
       width: 100%;
-      max-width: 900px;
+      max-width: 980px;
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid #334155;
       border-radius: 16px;
@@ -36,12 +36,7 @@
       color: #38bdf8;
     }
 
-    h2 {
-      color: #38bdf8;
-      margin-top: 0;
-    }
-
-    h3 {
+    h2, h3 {
       color: #38bdf8;
       margin-top: 0;
     }
@@ -124,17 +119,9 @@
       color: #f8fafc;
     }
 
-    .success {
-      color: #4ade80;
-    }
-
-    .error {
-      color: #f87171;
-    }
-
-    .hidden {
-      display: none !important;
-    }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .hidden { display: none !important; }
 
     .welcome {
       margin-top: 28px;
@@ -212,6 +199,72 @@
       justify-content: center;
       gap: 12px;
       flex-wrap: wrap;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid #334155;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #334155;
+      text-align: left;
+      color: #e2e8f0;
+      white-space: nowrap;
+    }
+
+    th {
+      background: rgba(30, 41, 59, 0.8);
+      color: #38bdf8;
+    }
+
+    .estado-badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+      border: 1px solid #334155;
+    }
+
+    .estado-activo {
+      background: rgba(34, 197, 94, 0.12);
+      color: #4ade80;
+    }
+
+    .estado-pendiente {
+      background: rgba(250, 204, 21, 0.12);
+      color: #fde047;
+    }
+
+    .estado-dormido {
+      background: rgba(96, 165, 250, 0.12);
+      color: #93c5fd;
+    }
+
+    .estado-perdido {
+      background: rgba(248, 113, 113, 0.12);
+      color: #f87171;
+    }
+
+    .estado-baja {
+      background: rgba(148, 163, 184, 0.12);
+      color: #cbd5e1;
+    }
+
+    .loading {
+      color: #93c5fd;
+      font-style: italic;
     }
 
     @media (max-width: 640px) {
@@ -387,7 +440,7 @@
       return menus[role] || menus.asociado;
     }
 
-    function getViewContent(key, role) {
+    function getStaticViewContent(key, role) {
       const views = {
         dashboard: `
           <p>Este es el punto de control principal de la APP ASUME.</p>
@@ -403,14 +456,6 @@
             <li>Crear usuarios nuevos</li>
             <li>Asignar roles</li>
             <li>Bloquear o activar accesos</li>
-          </ul>
-        `,
-        asociados: `
-          <p>Aquí irá el módulo de asociados, que será el siguiente que construiremos.</p>
-          <ul>
-            <li>Listado de empresas</li>
-            <li>Alta de asociado</li>
-            <li>Edición de ficha</li>
           </ul>
         `,
         tareas: `
@@ -556,6 +601,69 @@
       return views[key] || `<p>Vista no disponible para el rol: <strong>${role}</strong>.</p>`;
     }
 
+    function getEstadoClass(estado) {
+      const valor = (estado || '').toLowerCase();
+
+      if (valor === 'activo') return 'estado-badge estado-activo';
+      if (valor === 'pendiente') return 'estado-badge estado-pendiente';
+      if (valor === 'dormido') return 'estado-badge estado-dormido';
+      if (valor === 'perdido') return 'estado-badge estado-perdido';
+      if (valor === 'baja') return 'estado-badge estado-baja';
+
+      return 'estado-badge';
+    }
+
+    async function renderAsociadosView() {
+      setView('Asociados', '<p class="loading">Cargando asociados...</p>');
+
+      const { data, error } = await supabaseClient
+        .from('asociados')
+        .select('id, nombre, empresa, telefono, estado')
+        .order('id', { ascending: true });
+
+      if (error) {
+        setView('Asociados', `
+          <p class="error">Error al cargar asociados: ${error.message}</p>
+        `);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setView('Asociados', '<p>No hay asociados registrados todavía.</p>');
+        return;
+      }
+
+      const rows = data.map(item => `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.nombre || ''}</td>
+          <td>${item.empresa || ''}</td>
+          <td>${item.telefono || ''}</td>
+          <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
+        </tr>
+      `).join('');
+
+      setView('Asociados', `
+        <p>Listado real de asociados cargado desde Supabase.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Empresa</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `);
+    }
+
     function renderMenu(role) {
       const items = getMenuForRole(role);
       menuButtons.innerHTML = '';
@@ -564,9 +672,16 @@
         const btn = document.createElement('button');
         btn.className = 'menu-btn';
         btn.textContent = item.label;
-        btn.addEventListener('click', () => {
-          setView(item.label.replace(/^[^\s]+\s/, ''), getViewContent(item.key, role));
+
+        btn.addEventListener('click', async () => {
+          if (item.key === 'asociados') {
+            await renderAsociadosView();
+            return;
+          }
+
+          setView(item.label.replace(/^[^\s]+\s/, ''), getStaticViewContent(item.key, role));
         });
+
         menuButtons.appendChild(btn);
       });
     }
@@ -600,7 +715,7 @@
       roleSummary.textContent = getRoleSummary(role);
 
       renderMenu(role);
-      setView('Dashboard', getViewContent('dashboard', role));
+      setView('Dashboard', getStaticViewContent('dashboard', role));
     }
 
     async function checkSession() {
@@ -653,8 +768,11 @@
 
     homeBtn.addEventListener('click', async () => {
       const { data } = await supabaseClient.auth.getSession();
-      const role = data?.session?.user ? (await getUserProfile(data.session.user.id))?.role || 'asociado' : 'asociado';
-      setView('Dashboard', getViewContent('dashboard', role));
+      const role = data?.session?.user
+        ? (await getUserProfile(data.session.user.id))?.role || 'asociado'
+        : 'asociado';
+
+      setView('Dashboard', getStaticViewContent('dashboard', role));
     });
 
     checkSession();
