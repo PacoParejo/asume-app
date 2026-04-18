@@ -742,6 +742,39 @@
       `;
     }
 
+    async function archivarYEliminarAsociado(asociado) {
+      const payloadArchivo = {
+        contacto: asociado.contacto || '',
+        cargo: asociado.cargo || '',
+        telefono: asociado.telefono || '',
+        empresa: asociado.empresa || '',
+        actividad: asociado.actividad || '',
+        direccion: asociado.direccion || '',
+        email: asociado.email || '',
+        estado: asociado.estado || 'baja',
+        user_id: asociado.user_id || null
+      };
+
+      const { error: archivoError } = await supabaseClient
+        .from('asociados_archivo')
+        .insert([payloadArchivo]);
+
+      if (archivoError) {
+        return { ok: false, error: 'Error al archivar: ' + archivoError.message };
+      }
+
+      const { error: deleteError } = await supabaseClient
+        .from('asociados')
+        .delete()
+        .eq('id', asociado.id);
+
+      if (deleteError) {
+        return { ok: false, error: 'Se archivó, pero no se pudo eliminar: ' + deleteError.message };
+      }
+
+      return { ok: true };
+    }
+
     async function renderAsociadosView(mostrarFormulario = false, modo = 'nuevo', asociado = null) {
       setView('Asociados', '<p class="loading">Cargando asociados...</p>');
 
@@ -757,25 +790,32 @@
 
       const formHTML = mostrarFormulario ? getAsociadoFormHTML(modo, asociado || {}) : '';
 
-      const rows = (data || []).map(item => `
-        <tr>
-          <td>${item.id}</td>
-          <td>${item.contacto || ''}</td>
-          <td>${item.cargo || ''}</td>
-          <td>${item.telefono || ''}</td>
-          <td>${item.empresa || ''}</td>
-          <td>${item.actividad || ''}</td>
-          <td>${item.direccion || ''}</td>
-          <td>${item.email || ''}</td>
-          <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
-          <td>
-            <div class="table-actions">
-              <button class="secondary-btn editar-btn" data-id="${item.id}">Editar</button>
-              <button class="danger-btn baja-btn" data-id="${item.id}">Dar de baja</button>
-            </div>
-          </td>
-        </tr>
-      `).join('');
+      const rows = (data || []).map(item => {
+        const botonEliminar = (item.estado || '').toLowerCase() === 'baja'
+          ? `<button class="danger-btn eliminar-btn" data-id="${item.id}">Eliminar definitivamente</button>`
+          : '';
+
+        return `
+          <tr>
+            <td>${item.id}</td>
+            <td>${item.contacto || ''}</td>
+            <td>${item.cargo || ''}</td>
+            <td>${item.telefono || ''}</td>
+            <td>${item.empresa || ''}</td>
+            <td>${item.actividad || ''}</td>
+            <td>${item.direccion || ''}</td>
+            <td>${item.email || ''}</td>
+            <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
+            <td>
+              <div class="table-actions">
+                <button class="secondary-btn editar-btn" data-id="${item.id}">Editar</button>
+                <button class="danger-btn baja-btn" data-id="${item.id}">Dar de baja</button>
+                ${botonEliminar}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
 
       setView('Asociados', `
         <div class="asociado-header">
@@ -897,6 +937,27 @@
 
           if (bajaError) {
             alert('Error al dar de baja: ' + bajaError.message);
+            return;
+          }
+
+          await renderAsociadosView(false);
+        });
+      });
+
+      const eliminarBtns = document.querySelectorAll('.eliminar-btn');
+      eliminarBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = Number(btn.dataset.id);
+          const asociadoEncontrado = data.find(item => item.id === id);
+          if (!asociadoEncontrado) return;
+
+          const ok = confirm('Esto archivará el asociado y luego lo eliminará definitivamente de la tabla activa. ¿Continuar?');
+          if (!ok) return;
+
+          const resultado = await archivarYEliminarAsociado(asociadoEncontrado);
+
+          if (!resultado.ok) {
+            alert(resultado.error);
             return;
           }
 
