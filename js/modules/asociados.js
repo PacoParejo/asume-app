@@ -125,29 +125,36 @@ function getAsociadoFormHTML(modo = 'nuevo', asociado = {}) {
 function getFiltrosHTML(busqueda = '', estado = 'todos', resumen = { visibles: 0, activos: 0, bajas: 0 }) {
   return `
     <div class="form-card">
-      <div class="form-grid">
-        <div>
-          <label for="busquedaAsociados">Buscar</label>
-          <input
-            type="text"
-            id="busquedaAsociados"
-            placeholder="Buscar por contacto, empresa, teléfono o email"
-            value="${busqueda}"
-          />
+      <form id="filtrosAsociadosForm">
+        <div class="form-grid">
+          <div>
+            <label for="busquedaAsociados">Buscar</label>
+            <input
+              type="text"
+              id="busquedaAsociados"
+              placeholder="Buscar por contacto, empresa, teléfono o email"
+              value="${busqueda}"
+            />
+          </div>
+
+          <div>
+            <label for="filtroEstadoAsociados">Estado</label>
+            <select id="filtroEstadoAsociados">
+              <option value="todos" ${estado === 'todos' ? 'selected' : ''}>todos</option>
+              <option value="activo" ${estado === 'activo' ? 'selected' : ''}>activo</option>
+              <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>pendiente</option>
+              <option value="dormido" ${estado === 'dormido' ? 'selected' : ''}>dormido</option>
+              <option value="perdido" ${estado === 'perdido' ? 'selected' : ''}>perdido</option>
+              <option value="baja" ${estado === 'baja' ? 'selected' : ''}>baja</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label for="filtroEstadoAsociados">Estado</label>
-          <select id="filtroEstadoAsociados">
-            <option value="todos" ${estado === 'todos' ? 'selected' : ''}>todos</option>
-            <option value="activo" ${estado === 'activo' ? 'selected' : ''}>activo</option>
-            <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>pendiente</option>
-            <option value="dormido" ${estado === 'dormido' ? 'selected' : ''}>dormido</option>
-            <option value="perdido" ${estado === 'perdido' ? 'selected' : ''}>perdido</option>
-            <option value="baja" ${estado === 'baja' ? 'selected' : ''}>baja</option>
-          </select>
+        <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
+          <button type="submit">Buscar</button>
+          <button type="button" id="limpiarFiltrosBtn" class="secondary-btn">Limpiar</button>
         </div>
-      </div>
+      </form>
 
       <div class="helper" style="margin-top: 12px;">
         Visibles: <strong>${resumen.visibles}</strong> |
@@ -297,29 +304,22 @@ async function renderAsociadosInterna(
     });
   }
 
-  const buscador = document.getElementById('busquedaAsociados');
-  if (buscador) {
-    buscador.addEventListener('input', async (e) => {
-      await renderAsociadosInterna(
-        false,
-        'nuevo',
-        null,
-        e.target.value,
-        document.getElementById('filtroEstadoAsociados')?.value || 'todos'
-      );
+  const filtrosForm = document.getElementById('filtrosAsociadosForm');
+  if (filtrosForm) {
+    filtrosForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const nuevaBusqueda = document.getElementById('busquedaAsociados')?.value || '';
+      const nuevoEstado = document.getElementById('filtroEstadoAsociados')?.value || 'todos';
+
+      await renderAsociadosInterna(false, 'nuevo', null, nuevaBusqueda, nuevoEstado);
     });
   }
 
-  const filtroEstado = document.getElementById('filtroEstadoAsociados');
-  if (filtroEstado) {
-    filtroEstado.addEventListener('change', async (e) => {
-      await renderAsociadosInterna(
-        false,
-        'nuevo',
-        null,
-        document.getElementById('busquedaAsociados')?.value || '',
-        e.target.value
-      );
+  const limpiarFiltrosBtn = document.getElementById('limpiarFiltrosBtn');
+  if (limpiarFiltrosBtn) {
+    limpiarFiltrosBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(false, 'nuevo', null, '', 'todos');
     });
   }
 
