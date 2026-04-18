@@ -5,6 +5,7 @@ import {
   getUserProfile
 } from './supabase.js';
 import { renderAsociadosView } from './modules/asociados.js';
+import { renderArchivoView } from './modules/archivo.js';
 
 // ===============================
 // REFERENCIAS DOM
@@ -112,7 +113,7 @@ async function openView(key) {
   }
 
   if (key === 'archivo') {
-    setView('Archivo', '<p>Módulo archivo (próximo paso)</p>');
+    await renderArchivoView();
     return;
   }
 }
