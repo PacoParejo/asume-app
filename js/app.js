@@ -4,6 +4,7 @@ import {
   getSession,
   getUserProfile
 } from './supabase.js';
+import { renderAsociadosView } from './modules/asociados.js';
 
 // ===============================
 // REFERENCIAS DOM
@@ -88,7 +89,7 @@ function renderMenu(role) {
     btn.textContent = item.label;
 
     btn.addEventListener('click', async () => {
-      openView(item.key);
+      await openView(item.key);
     });
 
     menuButtons.appendChild(btn);
@@ -99,17 +100,20 @@ function renderMenu(role) {
 // ===============================
 // VISTAS
 // ===============================
-function openView(key) {
+async function openView(key) {
   if (key === 'dashboard') {
     setView('Dashboard', '<p>Panel principal</p>');
+    return;
   }
 
   if (key === 'asociados') {
-    setView('Asociados', '<p>Módulo asociados (próximo paso)</p>');
+    await renderAsociadosView();
+    return;
   }
 
   if (key === 'archivo') {
     setView('Archivo', '<p>Módulo archivo (próximo paso)</p>');
+    return;
   }
 }
 
@@ -152,7 +156,7 @@ async function showWelcome(user) {
   roleSummary.textContent = getRoleSummary(role);
 
   renderMenu(role);
-  openView('dashboard');
+  await openView('dashboard');
 }
 
 async function checkSession() {
@@ -174,8 +178,8 @@ logoutBtn.addEventListener('click', async () => {
   showLogin();
 });
 
-homeBtn.addEventListener('click', () => {
-  openView('dashboard');
+homeBtn.addEventListener('click', async () => {
+  await openView('dashboard');
 });
 
 
