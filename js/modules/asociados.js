@@ -1,5 +1,12 @@
 import { supabase } from '../supabase.js';
-import { setView } from '../ui.js';
+
+function setView(title, html) {
+  const viewTitle = document.getElementById('viewTitle');
+  const viewContent = document.getElementById('viewContent');
+
+  if (viewTitle) viewTitle.textContent = title;
+  if (viewContent) viewContent.innerHTML = html;
+}
 
 function getEstadoClass(estado) {
   const valor = (estado || '').toLowerCase();
