@@ -20,7 +20,69 @@ function getEstadoClass(estado) {
   return 'estado-badge';
 }
 
+async function existeAsociadoDuplicado(item) {
+  const email = (item.email || '').trim().toLowerCase();
+  const contacto = (item.contacto || '').trim().toLowerCase();
+  const empresa = (item.empresa || '').trim().toLowerCase();
+
+  const { data, error } = await supabase
+    .from('asociados')
+    .select('id, contacto, empresa, email')
+    .order('id', { ascending: true });
+
+  if (error) {
+    return {
+      ok: false,
+      error: 'Error al comprobar duplicados: ' + error.message
+    };
+  }
+
+  const duplicado = (data || []).find(row => {
+    const rowEmail = (row.email || '').trim().toLowerCase();
+    const rowContacto = (row.contacto || '').trim().toLowerCase();
+    const rowEmpresa = (row.empresa || '').trim().toLowerCase();
+
+    const coincideEmail = email && rowEmail && rowEmail === email;
+    const coincideContactoEmpresa =
+      contacto &&
+      empresa &&
+      rowContacto === contacto &&
+      rowEmpresa === empresa;
+
+    return coincideEmail || coincideContactoEmpresa;
+  });
+
+  return {
+    ok: true,
+    duplicado: !!duplicado,
+    registro: duplicado || null
+  };
+}
+
 async function restaurarAsociado(item) {
+  const chequeo = await existeAsociadoDuplicado(item);
+
+  if (!chequeo.ok) {
+    return {
+      ok: false,
+      error: chequeo.error
+    };
+  }
+
+  if (chequeo.duplicado) {
+    const ref = chequeo.registro;
+    return {
+      ok: false,
+      error:
+        'No se puede restaurar porque ya existe un asociado activo parecido.' +
+        '\n\nCoincidencia detectada:' +
+        `\nID: ${ref.id}` +
+        `\nContacto: ${ref.contacto || ''}` +
+        `\nEmpresa: ${ref.empresa || ''}` +
+        `\nEmail: ${ref.email || ''}`
+    };
+  }
+
   const payload = {
     contacto: item.contacto || '',
     cargo: item.cargo || '',
