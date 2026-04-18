@@ -21,7 +21,7 @@
 
     .card {
       width: 100%;
-      max-width: 1100px;
+      max-width: 1200px;
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid #334155;
       border-radius: 16px;
@@ -113,6 +113,11 @@
     .secondary-btn {
       background: #f8fafc;
       color: #0f172a;
+    }
+
+    .danger-btn {
+      background: #ef4444;
+      color: white;
     }
 
     .message {
@@ -302,6 +307,18 @@
       color: #94a3b8;
       font-size: 13px;
       margin-top: -4px;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .table-actions button {
+      padding: 8px 10px;
+      font-size: 13px;
+      border-radius: 8px;
     }
 
     @media (max-width: 800px) {
@@ -656,27 +673,91 @@
       return 'estado-badge';
     }
 
-    async function renderAsociadosView() {
+    function getAsociadoFormHTML(modo = 'nuevo', asociado = {}) {
+      const titulo = modo === 'editar' ? 'Editar asociado' : 'Nuevo asociado';
+      const boton = modo === 'editar' ? 'Guardar cambios' : 'Guardar asociado';
+
+      return `
+        <div class="form-card">
+          <h3>${titulo}</h3>
+          <form id="asociadoForm">
+            <div class="form-grid">
+              <div>
+                <label for="contacto">Contacto</label>
+                <input type="text" id="contacto" value="${asociado.contacto || ''}" required />
+              </div>
+
+              <div>
+                <label for="cargo">Cargo</label>
+                <input type="text" id="cargo" value="${asociado.cargo || ''}" />
+              </div>
+
+              <div>
+                <label for="telefono">Teléfono</label>
+                <input type="text" id="telefono" value="${asociado.telefono || ''}" required />
+              </div>
+
+              <div>
+                <label for="empresa">Empresa</label>
+                <input type="text" id="empresa" value="${asociado.empresa || ''}" required />
+              </div>
+
+              <div>
+                <label for="actividad">Actividad</label>
+                <input type="text" id="actividad" value="${asociado.actividad || ''}" />
+              </div>
+
+              <div>
+                <label for="email_asociado">Email</label>
+                <input type="email" id="email_asociado" value="${asociado.email || ''}" />
+              </div>
+
+              <div class="full-width">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" value="${asociado.direccion || ''}" />
+              </div>
+
+              <div>
+                <label for="estado">Estado</label>
+                <select id="estado">
+                  <option value="activo" ${asociado.estado === 'activo' ? 'selected' : ''}>activo</option>
+                  <option value="pendiente" ${asociado.estado === 'pendiente' ? 'selected' : ''}>pendiente</option>
+                  <option value="dormido" ${asociado.estado === 'dormido' ? 'selected' : ''}>dormido</option>
+                  <option value="perdido" ${asociado.estado === 'perdido' ? 'selected' : ''}>perdido</option>
+                  <option value="baja" ${asociado.estado === 'baja' ? 'selected' : ''}>baja</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="helper">Formulario simple: Contacto, Cargo, Teléfono, Empresa, Actividad, Dirección, Email.</div>
+
+            <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
+              <button type="submit">${boton}</button>
+              <button type="button" id="cancelarFormBtn" class="secondary-btn">Cancelar</button>
+            </div>
+          </form>
+
+          <div id="asociadoFormMsg" class="message"></div>
+        </div>
+      `;
+    }
+
+    async function renderAsociadosView(mostrarFormulario = false, modo = 'nuevo', asociado = null) {
       setView('Asociados', '<p class="loading">Cargando asociados...</p>');
 
       const { data, error } = await supabaseClient
         .from('asociados')
-        .select('id, contacto, cargo, telefono, empresa, actividad, direccion, email, estado')
+        .select('id, contacto, cargo, telefono, empresa, actividad, direccion, email, estado, user_id')
         .order('id', { ascending: true });
 
       if (error) {
-        setView('Asociados', `
-          <p class="error">Error al cargar asociados: ${error.message}</p>
-        `);
+        setView('Asociados', `<p class="error">Error al cargar asociados: ${error.message}</p>`);
         return;
       }
 
-      if (!data || data.length === 0) {
-        setView('Asociados', '<p>No hay asociados registrados todavía.</p>');
-        return;
-      }
+      const formHTML = mostrarFormulario ? getAsociadoFormHTML(modo, asociado || {}) : '';
 
-      const rows = data.map(item => `
+      const rows = (data || []).map(item => `
         <tr>
           <td>${item.id}</td>
           <td>${item.contacto || ''}</td>
@@ -687,6 +768,12 @@
           <td>${item.direccion || ''}</td>
           <td>${item.email || ''}</td>
           <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
+          <td>
+            <div class="table-actions">
+              <button class="secondary-btn editar-btn" data-id="${item.id}">Editar</button>
+              <button class="danger-btn baja-btn" data-id="${item.id}">Dar de baja</button>
+            </div>
+          </td>
         </tr>
       `).join('');
 
@@ -700,67 +787,7 @@
           </div>
         </div>
 
-        <div id="nuevoAsociadoFormWrap" class="form-card hidden">
-          <h3>Nuevo asociado</h3>
-          <form id="nuevoAsociadoForm">
-            <div class="form-grid">
-              <div>
-                <label for="nuevo_contacto">Contacto</label>
-                <input type="text" id="nuevo_contacto" required />
-              </div>
-
-              <div>
-                <label for="nuevo_cargo">Cargo</label>
-                <input type="text" id="nuevo_cargo" />
-              </div>
-
-              <div>
-                <label for="nuevo_telefono">Teléfono</label>
-                <input type="text" id="nuevo_telefono" required />
-              </div>
-
-              <div>
-                <label for="nuevo_empresa">Empresa</label>
-                <input type="text" id="nuevo_empresa" required />
-              </div>
-
-              <div>
-                <label for="nuevo_actividad">Actividad</label>
-                <input type="text" id="nuevo_actividad" />
-              </div>
-
-              <div>
-                <label for="nuevo_email">Email</label>
-                <input type="email" id="nuevo_email" />
-              </div>
-
-              <div class="full-width">
-                <label for="nuevo_direccion">Dirección</label>
-                <input type="text" id="nuevo_direccion" />
-              </div>
-
-              <div>
-                <label for="nuevo_estado">Estado</label>
-                <select id="nuevo_estado">
-                  <option value="activo">activo</option>
-                  <option value="pendiente">pendiente</option>
-                  <option value="dormido">dormido</option>
-                  <option value="perdido">perdido</option>
-                  <option value="baja">baja</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="helper">Formulario simple: Contacto, Cargo, Teléfono, Empresa, Actividad, Dirección, Email.</div>
-
-            <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
-              <button type="submit">Guardar asociado</button>
-              <button type="button" id="cancelarNuevoAsociadoBtn" class="secondary-btn">Cancelar</button>
-            </div>
-          </form>
-
-          <div id="nuevoAsociadoMsg" class="message"></div>
-        </div>
+        ${formHTML}
 
         <div class="table-wrap">
           <table>
@@ -775,64 +802,106 @@
                 <th>Dirección</th>
                 <th>Email</th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              ${rows}
+              ${rows || '<tr><td colspan="10">No hay asociados registrados todavía.</td></tr>'}
             </tbody>
           </table>
         </div>
       `);
 
       const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
-      const nuevoAsociadoFormWrap = document.getElementById('nuevoAsociadoFormWrap');
-      const cancelarNuevoAsociadoBtn = document.getElementById('cancelarNuevoAsociadoBtn');
-      const nuevoAsociadoForm = document.getElementById('nuevoAsociadoForm');
-      const nuevoAsociadoMsg = document.getElementById('nuevoAsociadoMsg');
-
-      nuevoAsociadoBtn.addEventListener('click', () => {
-        nuevoAsociadoFormWrap.classList.remove('hidden');
+      nuevoAsociadoBtn.addEventListener('click', async () => {
+        await renderAsociadosView(true, 'nuevo');
       });
 
-      cancelarNuevoAsociadoBtn.addEventListener('click', () => {
-        nuevoAsociadoFormWrap.classList.add('hidden');
-        nuevoAsociadoMsg.textContent = '';
-        nuevoAsociadoForm.reset();
+      const cancelarFormBtn = document.getElementById('cancelarFormBtn');
+      if (cancelarFormBtn) {
+        cancelarFormBtn.addEventListener('click', async () => {
+          await renderAsociadosView(false);
+        });
+      }
+
+      const asociadoForm = document.getElementById('asociadoForm');
+      if (asociadoForm) {
+        asociadoForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const formMsg = document.getElementById('asociadoFormMsg');
+          formMsg.textContent = modo === 'editar' ? 'Guardando cambios...' : 'Guardando asociado...';
+          formMsg.className = 'message';
+
+          const payload = {
+            contacto: document.getElementById('contacto').value.trim(),
+            cargo: document.getElementById('cargo').value.trim(),
+            telefono: document.getElementById('telefono').value.trim(),
+            empresa: document.getElementById('empresa').value.trim(),
+            actividad: document.getElementById('actividad').value.trim(),
+            direccion: document.getElementById('direccion').value.trim(),
+            email: document.getElementById('email_asociado').value.trim(),
+            estado: document.getElementById('estado').value
+          };
+
+          let response;
+
+          if (modo === 'editar' && asociado?.id) {
+            response = await supabaseClient
+              .from('asociados')
+              .update(payload)
+              .eq('id', asociado.id);
+          } else {
+            response = await supabaseClient
+              .from('asociados')
+              .insert([payload]);
+          }
+
+          if (response.error) {
+            formMsg.textContent = 'Error al guardar: ' + response.error.message;
+            formMsg.className = 'message error';
+            return;
+          }
+
+          formMsg.textContent = modo === 'editar'
+            ? 'Cambios guardados correctamente'
+            : 'Asociado guardado correctamente';
+          formMsg.className = 'message success';
+
+          setTimeout(async () => {
+            await renderAsociadosView(false);
+          }, 500);
+        });
+      }
+
+      const editarBtns = document.querySelectorAll('.editar-btn');
+      editarBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = Number(btn.dataset.id);
+          const asociadoEncontrado = data.find(item => item.id === id);
+          await renderAsociadosView(true, 'editar', asociadoEncontrado);
+        });
       });
 
-      nuevoAsociadoForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+      const bajaBtns = document.querySelectorAll('.baja-btn');
+      bajaBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = Number(btn.dataset.id);
+          const ok = confirm('¿Seguro que quieres dar de baja este asociado?');
+          if (!ok) return;
 
-        nuevoAsociadoMsg.textContent = 'Guardando asociado...';
-        nuevoAsociadoMsg.className = 'message';
+          const { error: bajaError } = await supabaseClient
+            .from('asociados')
+            .update({ estado: 'baja' })
+            .eq('id', id);
 
-        const payload = {
-          contacto: document.getElementById('nuevo_contacto').value.trim(),
-          cargo: document.getElementById('nuevo_cargo').value.trim(),
-          telefono: document.getElementById('nuevo_telefono').value.trim(),
-          empresa: document.getElementById('nuevo_empresa').value.trim(),
-          actividad: document.getElementById('nuevo_actividad').value.trim(),
-          direccion: document.getElementById('nuevo_direccion').value.trim(),
-          email: document.getElementById('nuevo_email').value.trim(),
-          estado: document.getElementById('nuevo_estado').value
-        };
+          if (bajaError) {
+            alert('Error al dar de baja: ' + bajaError.message);
+            return;
+          }
 
-        const { error: insertError } = await supabaseClient
-          .from('asociados')
-          .insert([payload]);
-
-        if (insertError) {
-          nuevoAsociadoMsg.textContent = 'Error al guardar: ' + insertError.message;
-          nuevoAsociadoMsg.className = 'message error';
-          return;
-        }
-
-        nuevoAsociadoMsg.textContent = 'Asociado guardado correctamente';
-        nuevoAsociadoMsg.className = 'message success';
-
-        setTimeout(async () => {
-          await renderAsociadosView();
-        }, 500);
+          await renderAsociadosView(false);
+        });
       });
     }
 
@@ -847,7 +916,7 @@
 
         btn.addEventListener('click', async () => {
           if (item.key === 'asociados') {
-            await renderAsociadosView();
+            await renderAsociadosView(false);
             return;
           }
 
