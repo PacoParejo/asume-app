@@ -20,6 +20,39 @@ function getEstadoClass(estado) {
   return 'estado-badge';
 }
 
+function normalizar(valor) {
+  return (valor || '').toString().trim().toLowerCase();
+}
+
+function filtrarAsociados(data, textoBusqueda, estadoFiltro) {
+  const texto = normalizar(textoBusqueda);
+  const estado = normalizar(estadoFiltro);
+
+  return (data || []).filter(item => {
+    const coincideBusqueda =
+      !texto ||
+      normalizar(item.contacto).includes(texto) ||
+      normalizar(item.empresa).includes(texto) ||
+      normalizar(item.telefono).includes(texto) ||
+      normalizar(item.email).includes(texto);
+
+    const coincideEstado =
+      !estado ||
+      estado === 'todos' ||
+      normalizar(item.estado) === estado;
+
+    return coincideBusqueda && coincideEstado;
+  });
+}
+
+function getResumen(dataFiltrada) {
+  const visibles = dataFiltrada.length;
+  const activos = dataFiltrada.filter(x => normalizar(x.estado) === 'activo').length;
+  const bajas = dataFiltrada.filter(x => normalizar(x.estado) === 'baja').length;
+
+  return { visibles, activos, bajas };
+}
+
 function getAsociadoFormHTML(modo = 'nuevo', asociado = {}) {
   const titulo = modo === 'editar' ? 'Editar asociado' : 'Nuevo asociado';
   const boton = modo === 'editar' ? 'Guardar cambios' : 'Guardar asociado';
@@ -89,6 +122,42 @@ function getAsociadoFormHTML(modo = 'nuevo', asociado = {}) {
   `;
 }
 
+function getFiltrosHTML(busqueda = '', estado = 'todos', resumen = { visibles: 0, activos: 0, bajas: 0 }) {
+  return `
+    <div class="form-card">
+      <div class="form-grid">
+        <div>
+          <label for="busquedaAsociados">Buscar</label>
+          <input
+            type="text"
+            id="busquedaAsociados"
+            placeholder="Buscar por contacto, empresa, teléfono o email"
+            value="${busqueda}"
+          />
+        </div>
+
+        <div>
+          <label for="filtroEstadoAsociados">Estado</label>
+          <select id="filtroEstadoAsociados">
+            <option value="todos" ${estado === 'todos' ? 'selected' : ''}>todos</option>
+            <option value="activo" ${estado === 'activo' ? 'selected' : ''}>activo</option>
+            <option value="pendiente" ${estado === 'pendiente' ? 'selected' : ''}>pendiente</option>
+            <option value="dormido" ${estado === 'dormido' ? 'selected' : ''}>dormido</option>
+            <option value="perdido" ${estado === 'perdido' ? 'selected' : ''}>perdido</option>
+            <option value="baja" ${estado === 'baja' ? 'selected' : ''}>baja</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="helper" style="margin-top: 12px;">
+        Visibles: <strong>${resumen.visibles}</strong> |
+        Activos: <strong>${resumen.activos}</strong> |
+        Baja: <strong>${resumen.bajas}</strong>
+      </div>
+    </div>
+  `;
+}
+
 async function archivarYEliminarAsociado(asociado) {
   const payloadArchivo = {
     contacto: asociado.contacto || '',
@@ -123,10 +192,16 @@ async function archivarYEliminarAsociado(asociado) {
 }
 
 export async function renderAsociadosView() {
-  await renderAsociadosInterna(false, 'nuevo', null);
+  await renderAsociadosInterna(false, 'nuevo', null, '', 'todos');
 }
 
-async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo', asociado = null) {
+async function renderAsociadosInterna(
+  mostrarFormulario = false,
+  modo = 'nuevo',
+  asociado = null,
+  busqueda = '',
+  estadoFiltro = 'todos'
+) {
   setView('Asociados', '<p class="loading">Cargando asociados...</p>');
 
   const { data, error } = await supabase
@@ -139,10 +214,13 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
     return;
   }
 
+  const dataFiltrada = filtrarAsociados(data || [], busqueda, estadoFiltro);
+  const resumen = getResumen(dataFiltrada);
   const formHTML = mostrarFormulario ? getAsociadoFormHTML(modo, asociado || {}) : '';
+  const filtrosHTML = getFiltrosHTML(busqueda, estadoFiltro, resumen);
 
-  const rows = (data || []).map(item => {
-    const botonEliminar = (item.estado || '').toLowerCase() === 'baja'
+  const rows = dataFiltrada.map(item => {
+    const botonEliminar = normalizar(item.estado) === 'baja'
       ? `<button class="danger-btn eliminar-btn" data-id="${item.id}">Eliminar definitivamente</button>`
       : '';
 
@@ -178,6 +256,8 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
       </div>
     </div>
 
+    ${filtrosHTML}
+
     ${formHTML}
 
     <div class="table-wrap">
@@ -197,7 +277,7 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
           </tr>
         </thead>
         <tbody>
-          ${rows || '<tr><td colspan="10">No hay asociados registrados todavía.</td></tr>'}
+          ${rows || '<tr><td colspan="10">No hay asociados que coincidan con el filtro.</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -206,14 +286,40 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
   const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
   if (nuevoAsociadoBtn) {
     nuevoAsociadoBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(true, 'nuevo');
+      await renderAsociadosInterna(true, 'nuevo', null, busqueda, estadoFiltro);
     });
   }
 
   const cancelarFormBtn = document.getElementById('cancelarFormBtn');
   if (cancelarFormBtn) {
     cancelarFormBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(false);
+      await renderAsociadosInterna(false, 'nuevo', null, busqueda, estadoFiltro);
+    });
+  }
+
+  const buscador = document.getElementById('busquedaAsociados');
+  if (buscador) {
+    buscador.addEventListener('input', async (e) => {
+      await renderAsociadosInterna(
+        false,
+        'nuevo',
+        null,
+        e.target.value,
+        document.getElementById('filtroEstadoAsociados')?.value || 'todos'
+      );
+    });
+  }
+
+  const filtroEstado = document.getElementById('filtroEstadoAsociados');
+  if (filtroEstado) {
+    filtroEstado.addEventListener('change', async (e) => {
+      await renderAsociadosInterna(
+        false,
+        'nuevo',
+        null,
+        document.getElementById('busquedaAsociados')?.value || '',
+        e.target.value
+      );
     });
   }
 
@@ -262,7 +368,7 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
       formMsg.className = 'message success';
 
       setTimeout(async () => {
-        await renderAsociadosInterna(false);
+        await renderAsociadosInterna(false, 'nuevo', null, busqueda, estadoFiltro);
       }, 500);
     });
   }
@@ -271,8 +377,8 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
   editarBtns.forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
-      const asociadoEncontrado = data.find(item => item.id === id);
-      await renderAsociadosInterna(true, 'editar', asociadoEncontrado);
+      const asociadoEncontrado = (data || []).find(item => item.id === id);
+      await renderAsociadosInterna(true, 'editar', asociadoEncontrado, busqueda, estadoFiltro);
     });
   });
 
@@ -293,7 +399,7 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
         return;
       }
 
-      await renderAsociadosInterna(false);
+      await renderAsociadosInterna(false, 'nuevo', null, busqueda, estadoFiltro);
     });
   });
 
@@ -301,7 +407,7 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
   eliminarBtns.forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
-      const asociadoEncontrado = data.find(item => item.id === id);
+      const asociadoEncontrado = (data || []).find(item => item.id === id);
       if (!asociadoEncontrado) return;
 
       const ok = confirm('Esto archivará el asociado y luego lo eliminará definitivamente de la tabla activa. ¿Continuar?');
@@ -314,7 +420,7 @@ async function renderAsociadosInterna(mostrarFormulario = false, modo = 'nuevo',
         return;
       }
 
-      await renderAsociadosInterna(false);
+      await renderAsociadosInterna(false, 'nuevo', null, busqueda, estadoFiltro);
     });
   });
 }
