@@ -208,6 +208,40 @@ function getNuevaEmpresaFormHTML() {
   `;
 }
 
+function getFichaAsociadoHTML(asociado, empresas) {
+  const listaEmpresas = (empresas || []).map(item => {
+    const nombre = item.empresas_nuevo?.nombre_empresa || '';
+    const principal = item.contacto_principal_empresa ? ' (principal)' : '';
+    return `<li>${nombre}${principal}</li>`;
+  }).join('');
+
+  return `
+    <div class="form-card">
+      <h2>${asociado.nombre || ''} ${asociado.apellidos || ''}</h2>
+
+      <p><strong>Teléfono:</strong> ${asociado.telefono || '-'}</p>
+      <p><strong>Email:</strong> ${asociado.email || '-'}</p>
+      <p><strong>Población:</strong> ${asociado.poblacion || '-'}</p>
+      <p><strong>Membresía:</strong> ${asociado.tipo_membresia || '-'}</p>
+      <p><strong>Cuota:</strong> ${asociado.paga_cuota ? 'Sí' : 'No'}</p>
+      <p><strong>Cargo ASUME:</strong> ${asociado.cargo_asume || '-'}</p>
+      <p><strong>Estado:</strong> <span class="${getEstadoClass(asociado.estado)}">${asociado.estado || ''}</span></p>
+
+      <h3>Empresas vinculadas</h3>
+      <ul>
+        ${listaEmpresas || '<li>Sin empresas vinculadas</li>'}
+      </ul>
+
+      <div class="top-actions" style="justify-content:flex-start; margin-top:20px;">
+        <button id="volverListadoBtn" class="secondary-btn">⬅ Volver</button>
+        <button id="editarFichaBtn">✏️ Editar</button>
+        <button id="darBajaFichaBtn" class="secondary-btn">⏸ Dar de baja</button>
+        <button id="eliminarFichaBtn" class="danger-btn">🗑 Eliminar</button>
+      </div>
+    </div>
+  `;
+}
+
 export async function renderAsociadosView() {
   await renderAsociadosInterna('', 'todos', false, false);
 }
@@ -349,9 +383,9 @@ async function renderAsociadosInterna(
 
   const verFichaBtns = document.querySelectorAll('.verFichaBtn');
   verFichaBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
-      alert('Abrir ficha del asociado ID: ' + id);
+      await renderFichaAsociado(id);
     });
   });
 
@@ -441,6 +475,67 @@ async function renderAsociadosInterna(
       setTimeout(async () => {
         await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
       }, 600);
+    });
+  }
+}
+
+async function renderFichaAsociado(id) {
+  setView('Ficha asociado', '<p class="loading">Cargando ficha...</p>');
+
+  const { data: asociado, error: errorAsociado } = await supabase
+    .from('asociados_nuevo')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (errorAsociado) {
+    setView('Error', `<p class="error">${errorAsociado.message}</p>`);
+    return;
+  }
+
+  const { data: empresas, error: errorEmpresas } = await supabase
+    .from('asociado_empresa_nuevo')
+    .select(`
+      contacto_principal_empresa,
+      empresas_nuevo (
+        id,
+        nombre_empresa
+      )
+    `)
+    .eq('asociado_id', id);
+
+  if (errorEmpresas) {
+    setView('Error', `<p class="error">${errorEmpresas.message}</p>`);
+    return;
+  }
+
+  setView('Ficha asociado', getFichaAsociadoHTML(asociado, empresas));
+
+  const volverBtn = document.getElementById('volverListadoBtn');
+  if (volverBtn) {
+    volverBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna('', 'todos', false, false);
+    });
+  }
+
+  const editarBtn = document.getElementById('editarFichaBtn');
+  if (editarBtn) {
+    editarBtn.addEventListener('click', () => {
+      alert('Siguiente paso: editar ficha del asociado');
+    });
+  }
+
+  const darBajaBtn = document.getElementById('darBajaFichaBtn');
+  if (darBajaBtn) {
+    darBajaBtn.addEventListener('click', () => {
+      alert('Siguiente paso: dar de baja al asociado');
+    });
+  }
+
+  const eliminarBtn = document.getElementById('eliminarFichaBtn');
+  if (eliminarBtn) {
+    eliminarBtn.addEventListener('click', () => {
+      alert('Siguiente paso: eliminar asociado');
     });
   }
 }
