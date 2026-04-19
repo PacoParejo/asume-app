@@ -239,7 +239,11 @@ async function renderAsociadosInterna(
   const rows = dataFiltrada.map(item => `
     <tr>
       <td>${item.id}</td>
-      <td>${nombreCompleto(item)}</td>
+      <td>
+        <button class="secondary-btn verFichaBtn" data-id="${item.id}" style="padding:6px 10px; font-size:13px;">
+          ${nombreCompleto(item)}
+        </button>
+      </td>
       <td>${item.telefono || ''}</td>
       <td>${item.email || ''}</td>
       <td>${item.poblacion || ''}</td>
@@ -248,6 +252,11 @@ async function renderAsociadosInterna(
       <td>${item.cargo_asume || ''}</td>
       <td>${item.empresas || ''}</td>
       <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
+      <td>
+        <button class="secondary-btn verFichaBtn" data-id="${item.id}" style="padding:6px 10px; font-size:13px;">
+          Ver ficha
+        </button>
+      </td>
     </tr>
   `).join('');
 
@@ -288,10 +297,11 @@ async function renderAsociadosInterna(
             <th>Cargo ASUME</th>
             <th>Empresas</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          ${rows || '<tr><td colspan="10">No hay asociados que coincidan con el filtro.</td></tr>'}
+          ${rows || '<tr><td colspan="11">No hay asociados que coincidan con el filtro.</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -336,6 +346,14 @@ async function renderAsociadosInterna(
       alert('Siguiente paso: formulario para vincular asociado y empresa');
     });
   }
+
+  const verFichaBtns = document.querySelectorAll('.verFichaBtn');
+  verFichaBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      alert('Abrir ficha del asociado ID: ' + id);
+    });
+  });
 
   const cancelarNuevoAsociadoBtn = document.getElementById('cancelarNuevoAsociadoBtn');
   if (cancelarNuevoAsociadoBtn) {
