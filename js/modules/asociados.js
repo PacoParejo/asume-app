@@ -106,11 +106,75 @@ function getFiltrosHTML(busqueda = '', estado = 'todos', resumen = { visibles: 0
   `;
 }
 
-export async function renderAsociadosView() {
-  await renderAsociadosInterna('', 'todos');
+function getNuevoAsociadoFormHTML() {
+  return `
+    <div class="form-card">
+      <h3>Nuevo asociado</h3>
+      <form id="nuevoAsociadoForm">
+        <div class="form-grid">
+          <div>
+            <label for="nuevo_nombre">Nombre</label>
+            <input type="text" id="nuevo_nombre" required />
+          </div>
+
+          <div>
+            <label for="nuevo_apellidos">Apellidos</label>
+            <input type="text" id="nuevo_apellidos" />
+          </div>
+
+          <div>
+            <label for="nuevo_telefono">Teléfono</label>
+            <input type="text" id="nuevo_telefono" />
+          </div>
+
+          <div>
+            <label for="nuevo_email">Email</label>
+            <input type="email" id="nuevo_email" />
+          </div>
+
+          <div>
+            <label for="nuevo_poblacion">Población</label>
+            <input type="text" id="nuevo_poblacion" />
+          </div>
+
+          <div>
+            <label for="nuevo_tipo_membresia">Tipo de membresía</label>
+            <select id="nuevo_tipo_membresia">
+              <option value="Titular">Titular</option>
+              <option value="Vinculado">Vinculado</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="nuevo_paga_cuota">¿Paga cuota?</label>
+            <select id="nuevo_paga_cuota">
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="nuevo_cargo_asume">Cargo ASUME</label>
+            <input type="text" id="nuevo_cargo_asume" />
+          </div>
+        </div>
+
+        <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
+          <button type="submit">Guardar asociado</button>
+          <button type="button" id="cancelarNuevoAsociadoBtn" class="secondary-btn">Cancelar</button>
+        </div>
+      </form>
+
+      <div id="nuevoAsociadoMsg" class="message"></div>
+    </div>
+  `;
 }
 
-async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
+export async function renderAsociadosView() {
+  await renderAsociadosInterna('', 'todos', false);
+}
+
+async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mostrarFormNuevo = false) {
   setView('Asociados', '<p class="loading">Cargando asociados...</p>');
 
   const { data, error } = await supabase
@@ -126,6 +190,7 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
   const dataFiltrada = filtrarAsociados(data || [], busqueda, estadoFiltro);
   const resumen = getResumen(dataFiltrada);
   const filtrosHTML = getFiltrosHTML(busqueda, estadoFiltro, resumen);
+  const nuevoAsociadoFormHTML = mostrarFormNuevo ? getNuevoAsociadoFormHTML() : '';
 
   const rows = dataFiltrada.map(item => `
     <tr>
@@ -155,6 +220,8 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
     </div>
 
     ${filtrosHTML}
+
+    ${nuevoAsociadoFormHTML}
 
     <div class="form-card">
       <div class="helper">
@@ -193,21 +260,21 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
       const nuevaBusqueda = document.getElementById('busquedaAsociados')?.value || '';
       const nuevoEstado = document.getElementById('filtroEstadoAsociados')?.value || 'todos';
 
-      await renderAsociadosInterna(nuevaBusqueda, nuevoEstado);
+      await renderAsociadosInterna(nuevaBusqueda, nuevoEstado, false);
     });
   }
 
   const limpiarFiltrosBtn = document.getElementById('limpiarFiltrosBtn');
   if (limpiarFiltrosBtn) {
     limpiarFiltrosBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna('', 'todos');
+      await renderAsociadosInterna('', 'todos', false);
     });
   }
 
   const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
   if (nuevoAsociadoBtn) {
-    nuevoAsociadoBtn.addEventListener('click', () => {
-      alert('Siguiente paso: formulario de nuevo asociado');
+    nuevoAsociadoBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(busqueda, estadoFiltro, true);
     });
   }
 
@@ -222,6 +289,53 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
   if (vincularBtn) {
     vincularBtn.addEventListener('click', () => {
       alert('Siguiente paso: formulario para vincular asociado y empresa');
+    });
+  }
+
+  const cancelarNuevoAsociadoBtn = document.getElementById('cancelarNuevoAsociadoBtn');
+  if (cancelarNuevoAsociadoBtn) {
+    cancelarNuevoAsociadoBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(busqueda, estadoFiltro, false);
+    });
+  }
+
+  const nuevoAsociadoForm = document.getElementById('nuevoAsociadoForm');
+  if (nuevoAsociadoForm) {
+    nuevoAsociadoForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('nuevoAsociadoMsg');
+      msg.textContent = 'Guardando asociado...';
+      msg.className = 'message';
+
+      const payload = {
+        nombre: document.getElementById('nuevo_nombre').value.trim(),
+        apellidos: document.getElementById('nuevo_apellidos').value.trim() || null,
+        telefono: document.getElementById('nuevo_telefono').value.trim() || null,
+        email: document.getElementById('nuevo_email').value.trim() || null,
+        poblacion: document.getElementById('nuevo_poblacion').value.trim() || null,
+        tipo_membresia: document.getElementById('nuevo_tipo_membresia').value,
+        paga_cuota: document.getElementById('nuevo_paga_cuota').value === 'true',
+        cargo_asume: document.getElementById('nuevo_cargo_asume').value.trim() || null,
+        estado: 'activo'
+      };
+
+      const { error: insertError } = await supabase
+        .from('asociados_nuevo')
+        .insert([payload]);
+
+      if (insertError) {
+        msg.textContent = 'Error al guardar: ' + insertError.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = 'Asociado guardado correctamente';
+      msg.className = 'message success';
+
+      setTimeout(async () => {
+        await renderAsociadosInterna(busqueda, estadoFiltro, false);
+      }, 600);
     });
   }
 }
