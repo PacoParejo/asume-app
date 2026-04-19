@@ -147,6 +147,11 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
       <div>
         <p style="margin:0;">Listado agrupado de asociados desde la nueva estructura.</p>
       </div>
+      <div class="table-actions">
+        <button id="nuevoAsociadoBtn">➕ Nuevo asociado</button>
+        <button id="nuevaEmpresaBtn" class="secondary-btn">🏢 Nueva empresa</button>
+        <button id="vincularBtn" class="secondary-btn">🔗 Vincular</button>
+      </div>
     </div>
 
     ${filtrosHTML}
@@ -196,6 +201,27 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos') {
   if (limpiarFiltrosBtn) {
     limpiarFiltrosBtn.addEventListener('click', async () => {
       await renderAsociadosInterna('', 'todos');
+    });
+  }
+
+  const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
+  if (nuevoAsociadoBtn) {
+    nuevoAsociadoBtn.addEventListener('click', () => {
+      alert('Siguiente paso: formulario de nuevo asociado');
+    });
+  }
+
+  const nuevaEmpresaBtn = document.getElementById('nuevaEmpresaBtn');
+  if (nuevaEmpresaBtn) {
+    nuevaEmpresaBtn.addEventListener('click', () => {
+      alert('Siguiente paso: formulario de nueva empresa');
+    });
+  }
+
+  const vincularBtn = document.getElementById('vincularBtn');
+  if (vincularBtn) {
+    vincularBtn.addEventListener('click', () => {
+      alert('Siguiente paso: formulario para vincular asociado y empresa');
     });
   }
 }
