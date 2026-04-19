@@ -170,11 +170,54 @@ function getNuevoAsociadoFormHTML() {
   `;
 }
 
-export async function renderAsociadosView() {
-  await renderAsociadosInterna('', 'todos', false);
+function getNuevaEmpresaFormHTML() {
+  return `
+    <div class="form-card">
+      <h3>Nueva empresa</h3>
+      <form id="nuevaEmpresaForm">
+        <div class="form-grid">
+          <div>
+            <label for="empresa_nombre">Nombre de empresa</label>
+            <input type="text" id="empresa_nombre" required />
+          </div>
+
+          <div>
+            <label for="empresa_actividad">Actividad</label>
+            <input type="text" id="empresa_actividad" />
+          </div>
+
+          <div class="full-width">
+            <label for="empresa_direccion">Dirección</label>
+            <input type="text" id="empresa_direccion" />
+          </div>
+
+          <div>
+            <label for="empresa_poblacion">Población</label>
+            <input type="text" id="empresa_poblacion" />
+          </div>
+        </div>
+
+        <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
+          <button type="submit">Guardar empresa</button>
+          <button type="button" id="cancelarNuevaEmpresaBtn" class="secondary-btn">Cancelar</button>
+        </div>
+      </form>
+
+      <div id="nuevaEmpresaMsg" class="message"></div>
+    </div>
+  `;
 }
 
-async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mostrarFormNuevo = false) {
+export async function renderAsociadosView() {
+  await renderAsociadosInterna('', 'todos', false, false);
+}
+
+async function renderAsociadosInterna(
+  busqueda = '',
+  estadoFiltro = 'todos',
+  mostrarFormNuevo = false,
+  mostrarFormEmpresa = false
+) {
   setView('Asociados', '<p class="loading">Cargando asociados...</p>');
 
   const { data, error } = await supabase
@@ -191,6 +234,7 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mos
   const resumen = getResumen(dataFiltrada);
   const filtrosHTML = getFiltrosHTML(busqueda, estadoFiltro, resumen);
   const nuevoAsociadoFormHTML = mostrarFormNuevo ? getNuevoAsociadoFormHTML() : '';
+  const nuevaEmpresaFormHTML = mostrarFormEmpresa ? getNuevaEmpresaFormHTML() : '';
 
   const rows = dataFiltrada.map(item => `
     <tr>
@@ -222,6 +266,7 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mos
     ${filtrosHTML}
 
     ${nuevoAsociadoFormHTML}
+    ${nuevaEmpresaFormHTML}
 
     <div class="form-card">
       <div class="helper">
@@ -260,28 +305,28 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mos
       const nuevaBusqueda = document.getElementById('busquedaAsociados')?.value || '';
       const nuevoEstado = document.getElementById('filtroEstadoAsociados')?.value || 'todos';
 
-      await renderAsociadosInterna(nuevaBusqueda, nuevoEstado, false);
+      await renderAsociadosInterna(nuevaBusqueda, nuevoEstado, false, false);
     });
   }
 
   const limpiarFiltrosBtn = document.getElementById('limpiarFiltrosBtn');
   if (limpiarFiltrosBtn) {
     limpiarFiltrosBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna('', 'todos', false);
+      await renderAsociadosInterna('', 'todos', false, false);
     });
   }
 
   const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
   if (nuevoAsociadoBtn) {
     nuevoAsociadoBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(busqueda, estadoFiltro, true);
+      await renderAsociadosInterna(busqueda, estadoFiltro, true, false);
     });
   }
 
   const nuevaEmpresaBtn = document.getElementById('nuevaEmpresaBtn');
   if (nuevaEmpresaBtn) {
-    nuevaEmpresaBtn.addEventListener('click', () => {
-      alert('Siguiente paso: formulario de nueva empresa');
+    nuevaEmpresaBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, true);
     });
   }
 
@@ -295,7 +340,7 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mos
   const cancelarNuevoAsociadoBtn = document.getElementById('cancelarNuevoAsociadoBtn');
   if (cancelarNuevoAsociadoBtn) {
     cancelarNuevoAsociadoBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(busqueda, estadoFiltro, false);
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
     });
   }
 
@@ -334,7 +379,49 @@ async function renderAsociadosInterna(busqueda = '', estadoFiltro = 'todos', mos
       msg.className = 'message success';
 
       setTimeout(async () => {
-        await renderAsociadosInterna(busqueda, estadoFiltro, false);
+        await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
+      }, 600);
+    });
+  }
+
+  const cancelarNuevaEmpresaBtn = document.getElementById('cancelarNuevaEmpresaBtn');
+  if (cancelarNuevaEmpresaBtn) {
+    cancelarNuevaEmpresaBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
+    });
+  }
+
+  const nuevaEmpresaForm = document.getElementById('nuevaEmpresaForm');
+  if (nuevaEmpresaForm) {
+    nuevaEmpresaForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('nuevaEmpresaMsg');
+      msg.textContent = 'Guardando empresa...';
+      msg.className = 'message';
+
+      const payload = {
+        nombre_empresa: document.getElementById('empresa_nombre').value.trim(),
+        actividad: document.getElementById('empresa_actividad').value.trim() || null,
+        direccion: document.getElementById('empresa_direccion').value.trim() || null,
+        poblacion: document.getElementById('empresa_poblacion').value.trim() || null
+      };
+
+      const { error: insertError } = await supabase
+        .from('empresas_nuevo')
+        .insert([payload]);
+
+      if (insertError) {
+        msg.textContent = 'Error al guardar: ' + insertError.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = 'Empresa guardada correctamente';
+      msg.className = 'message success';
+
+      setTimeout(async () => {
+        await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
       }, 600);
     });
   }
