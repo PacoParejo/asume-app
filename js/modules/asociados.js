@@ -242,6 +242,71 @@ function getFichaAsociadoHTML(asociado, empresas) {
   `;
 }
 
+function getEditarAsociadoFormHTML(asociado) {
+  return `
+    <div class="form-card">
+      <h2>Editar: ${asociado.nombre || ''} ${asociado.apellidos || ''}</h2>
+
+      <form id="editarAsociadoForm">
+        <div class="form-grid">
+          <div>
+            <label for="edit_nombre">Nombre</label>
+            <input type="text" id="edit_nombre" value="${asociado.nombre || ''}" required />
+          </div>
+
+          <div>
+            <label for="edit_apellidos">Apellidos</label>
+            <input type="text" id="edit_apellidos" value="${asociado.apellidos || ''}" />
+          </div>
+
+          <div>
+            <label for="edit_telefono">Teléfono</label>
+            <input type="text" id="edit_telefono" value="${asociado.telefono || ''}" />
+          </div>
+
+          <div>
+            <label for="edit_email">Email</label>
+            <input type="email" id="edit_email" value="${asociado.email || ''}" />
+          </div>
+
+          <div>
+            <label for="edit_poblacion">Población</label>
+            <input type="text" id="edit_poblacion" value="${asociado.poblacion || ''}" />
+          </div>
+
+          <div>
+            <label for="edit_tipo_membresia">Tipo de membresía</label>
+            <select id="edit_tipo_membresia">
+              <option value="Titular" ${asociado.tipo_membresia === 'Titular' ? 'selected' : ''}>Titular</option>
+              <option value="Vinculado" ${asociado.tipo_membresia === 'Vinculado' ? 'selected' : ''}>Vinculado</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="edit_paga_cuota">¿Paga cuota?</label>
+            <select id="edit_paga_cuota">
+              <option value="true" ${asociado.paga_cuota ? 'selected' : ''}>Sí</option>
+              <option value="false" ${!asociado.paga_cuota ? 'selected' : ''}>No</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="edit_cargo_asume">Cargo ASUME</label>
+            <input type="text" id="edit_cargo_asume" value="${asociado.cargo_asume || ''}" />
+          </div>
+        </div>
+
+        <div class="top-actions" style="justify-content:flex-start; margin-top:20px;">
+          <button type="submit">💾 Guardar cambios</button>
+          <button type="button" id="cancelarEdicionBtn" class="secondary-btn">Cancelar</button>
+        </div>
+      </form>
+
+      <div id="msgEditarAsociado" class="message"></div>
+    </div>
+  `;
+}
+
 export async function renderAsociadosView() {
   await renderAsociadosInterna('', 'todos', false, false);
 }
@@ -520,8 +585,8 @@ async function renderFichaAsociado(id) {
 
   const editarBtn = document.getElementById('editarFichaBtn');
   if (editarBtn) {
-    editarBtn.addEventListener('click', () => {
-      alert('Siguiente paso: editar ficha del asociado');
+    editarBtn.addEventListener('click', async () => {
+      await renderEditarAsociado(id);
     });
   }
 
@@ -536,6 +601,70 @@ async function renderFichaAsociado(id) {
   if (eliminarBtn) {
     eliminarBtn.addEventListener('click', () => {
       alert('Siguiente paso: eliminar asociado');
+    });
+  }
+}
+
+async function renderEditarAsociado(id) {
+  setView('Editar asociado', '<p class="loading">Cargando edición...</p>');
+
+  const { data: asociado, error } = await supabase
+    .from('asociados_nuevo')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    setView('Error', `<p class="error">${error.message}</p>`);
+    return;
+  }
+
+  setView('Editar asociado', getEditarAsociadoFormHTML(asociado));
+
+  const cancelarBtn = document.getElementById('cancelarEdicionBtn');
+  if (cancelarBtn) {
+    cancelarBtn.addEventListener('click', async () => {
+      await renderFichaAsociado(id);
+    });
+  }
+
+  const editarForm = document.getElementById('editarAsociadoForm');
+  if (editarForm) {
+    editarForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('msgEditarAsociado');
+      msg.textContent = 'Guardando cambios...';
+      msg.className = 'message';
+
+      const payload = {
+        nombre: document.getElementById('edit_nombre').value.trim(),
+        apellidos: document.getElementById('edit_apellidos').value.trim() || null,
+        telefono: document.getElementById('edit_telefono').value.trim() || null,
+        email: document.getElementById('edit_email').value.trim() || null,
+        poblacion: document.getElementById('edit_poblacion').value.trim() || null,
+        tipo_membresia: document.getElementById('edit_tipo_membresia').value,
+        paga_cuota: document.getElementById('edit_paga_cuota').value === 'true',
+        cargo_asume: document.getElementById('edit_cargo_asume').value.trim() || null
+      };
+
+      const { error: updateError } = await supabase
+        .from('asociados_nuevo')
+        .update(payload)
+        .eq('id', id);
+
+      if (updateError) {
+        msg.textContent = 'Error al guardar: ' + updateError.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = 'Cambios guardados correctamente';
+      msg.className = 'message success';
+
+      setTimeout(async () => {
+        await renderFichaAsociado(id);
+      }, 600);
     });
   }
 }
