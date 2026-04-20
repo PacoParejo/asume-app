@@ -8,205 +8,138 @@ function setView(title, html) {
   if (viewContent) viewContent.innerHTML = html;
 }
 
-function getEstadoClass(estado) {
-  const valor = (estado || '').toLowerCase();
-
-  if (valor === 'activo') return 'estado-badge estado-activo';
-  if (valor === 'pendiente') return 'estado-badge estado-pendiente';
-  if (valor === 'dormido') return 'estado-badge estado-dormido';
-  if (valor === 'perdido') return 'estado-badge estado-perdido';
-  if (valor === 'baja') return 'estado-badge estado-baja';
-
-  return 'estado-badge';
-}
-
-async function existeAsociadoDuplicado(item) {
-  const email = (item.email || '').trim().toLowerCase();
-  const contacto = (item.contacto || '').trim().toLowerCase();
-  const empresa = (item.empresa || '').trim().toLowerCase();
-
-  const { data, error } = await supabase
-    .from('asociados')
-    .select('id, contacto, empresa, email')
-    .order('id', { ascending: true });
-
-  if (error) {
-    return {
-      ok: false,
-      error: 'Error al comprobar duplicados: ' + error.message
-    };
-  }
-
-  const duplicado = (data || []).find(row => {
-    const rowEmail = (row.email || '').trim().toLowerCase();
-    const rowContacto = (row.contacto || '').trim().toLowerCase();
-    const rowEmpresa = (row.empresa || '').trim().toLowerCase();
-
-    const coincideEmail = email && rowEmail && rowEmail === email;
-    const coincideContactoEmpresa =
-      contacto &&
-      empresa &&
-      rowContacto === contacto &&
-      rowEmpresa === empresa;
-
-    return coincideEmail || coincideContactoEmpresa;
-  });
-
-  return {
-    ok: true,
-    duplicado: !!duplicado,
-    registro: duplicado || null
-  };
-}
-
-async function restaurarAsociado(item) {
-  const chequeo = await existeAsociadoDuplicado(item);
-
-  if (!chequeo.ok) {
-    return {
-      ok: false,
-      error: chequeo.error
-    };
-  }
-
-  if (chequeo.duplicado) {
-    const ref = chequeo.registro;
-    return {
-      ok: false,
-      error:
-        'No se puede restaurar porque ya existe un asociado activo parecido.' +
-        '\n\nCoincidencia detectada:' +
-        `\nID: ${ref.id}` +
-        `\nContacto: ${ref.contacto || ''}` +
-        `\nEmpresa: ${ref.empresa || ''}` +
-        `\nEmail: ${ref.email || ''}`
-    };
-  }
-
-  const payload = {
-    contacto: item.contacto || '',
-    cargo: item.cargo || '',
-    telefono: item.telefono || '',
-    empresa: item.empresa || '',
-    actividad: item.actividad || '',
-    direccion: item.direccion || '',
-    email: item.email || '',
-    estado: 'activo',
-    user_id: item.user_id || null
-  };
-
-  const { error: insertError } = await supabase
-    .from('asociados')
-    .insert([payload]);
-
-  if (insertError) {
-    return {
-      ok: false,
-      error: 'Error al restaurar en asociados: ' + insertError.message
-    };
-  }
-
-  const { error: deleteError } = await supabase
-    .from('asociados_archivo')
-    .delete()
-    .eq('id', item.id);
-
-  if (deleteError) {
-    return {
-      ok: false,
-      error: 'Se restauró en activos, pero NO se pudo borrar del archivo: ' + deleteError.message
-    };
-  }
-
-  return { ok: true };
-}
-
 export async function renderArchivoView() {
   setView('Archivo', '<p class="loading">Cargando archivo...</p>');
 
   const { data, error } = await supabase
-    .from('asociados_archivo')
-    .select('id, contacto, cargo, telefono, empresa, actividad, direccion, email, estado, user_id, archivado_at')
-    .order('id', { ascending: false });
+    .from('asociados_nuevo_archivo')
+    .select('*')
+    .order('archived_at', { ascending: false });
 
   if (error) {
-    setView('Archivo', `<p class="error">Error al cargar archivo: ${error.message}</p>`);
+    setView('Archivo', `<p class="error">${error.message}</p>`);
     return;
   }
 
   const rows = (data || []).map(item => `
     <tr>
       <td>${item.id}</td>
-      <td>${item.contacto || ''}</td>
-      <td>${item.cargo || ''}</td>
+      <td>${item.nombre || ''} ${item.apellidos || ''}</td>
       <td>${item.telefono || ''}</td>
-      <td>${item.empresa || ''}</td>
       <td>${item.email || ''}</td>
-      <td><span class="${getEstadoClass(item.estado)}">${item.estado || ''}</span></td>
-      <td>${item.archivado_at || ''}</td>
+      <td>${item.poblacion || ''}</td>
+      <td>${item.tipo_membresia || ''}</td>
+      <td>${item.paga_cuota ? 'Sí' : 'No'}</td>
+      <td>${item.archived_at || ''}</td>
       <td>
-        <div class="table-actions">
-          <button class="secondary-btn restaurar-btn" data-id="${item.id}">
-            Restaurar
-          </button>
-        </div>
+        <button class="restaurarBtn" data-id="${item.id}">♻️ Restaurar</button>
       </td>
     </tr>
   `).join('');
 
   setView('Archivo', `
-    <div class="asociado-header">
-      <div>
-        <p style="margin:0;">Listado de asociados archivados.</p>
-      </div>
-    </div>
+    <div class="form-card">
+      <h2>Asociados eliminados</h2>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Contacto</th>
-            <th>Cargo</th>
-            <th>Teléfono</th>
-            <th>Empresa</th>
-            <th>Email</th>
-            <th>Estado</th>
-            <th>Archivado</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows || '<tr><td colspan="9">No hay registros en archivo.</td></tr>'}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Población</th>
+              <th>Membresía</th>
+              <th>Cuota</th>
+              <th>Archivado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="9">No hay datos en archivo</td></tr>'}
+          </tbody>
+        </table>
+      </div>
     </div>
   `);
 
-  const botones = document.querySelectorAll('.restaurar-btn');
+  const botones = document.querySelectorAll('.restaurarBtn');
 
   botones.forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-      const item = data.find(x => x.id === id);
-      if (!item) return;
-
-      const ok = confirm('¿Restaurar este asociado a la tabla activa?');
-      if (!ok) return;
-
-      btn.disabled = true;
-      btn.textContent = 'Restaurando...';
-
-      const resultado = await restaurarAsociado(item);
-
-      if (!resultado.ok) {
-        alert(resultado.error);
-        btn.disabled = false;
-        btn.textContent = 'Restaurar';
-        return;
-      }
-
-      await renderArchivoView();
+      const id = btn.dataset.id;
+      await restaurarAsociado(id);
     });
   });
+}
+
+async function restaurarAsociado(id) {
+  const ok = confirm('Esto restaurará el asociado y sus relaciones. ¿Continuar?');
+  if (!ok) return;
+
+  // 1. recuperar asociado
+  const { data: asociado, error } = await supabase
+    .from('asociados_nuevo_archivo')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    alert('Error al recuperar asociado: ' + error.message);
+    return;
+  }
+
+  // 2. insertar en tabla activa
+  const { error: insertError } = await supabase
+    .from('asociados_nuevo')
+    .insert([{
+      nombre: asociado.nombre,
+      apellidos: asociado.apellidos,
+      telefono: asociado.telefono,
+      email: asociado.email,
+      poblacion: asociado.poblacion,
+      tipo_membresia: asociado.tipo_membresia,
+      paga_cuota: asociado.paga_cuota,
+      cargo_asume: asociado.cargo_asume,
+      estado: 'activo'
+    }])
+    .select()
+    .single();
+
+  if (insertError) {
+    alert('Error al restaurar asociado: ' + insertError.message);
+    return;
+  }
+
+  // 3. recuperar relaciones
+  const { data: relaciones } = await supabase
+    .from('asociado_empresa_nuevo_archivo')
+    .select('*')
+    .eq('asociado_id_original', id);
+
+  if (relaciones && relaciones.length > 0) {
+    const payload = relaciones.map(r => ({
+      asociado_id: insertError?.id || null,
+      empresa_id: r.empresa_id,
+      contacto_principal_empresa: r.contacto_principal_empresa
+    }));
+
+    await supabase.from('asociado_empresa_nuevo').insert(payload);
+  }
+
+  // 4. borrar del archivo
+  await supabase
+    .from('asociados_nuevo_archivo')
+    .delete()
+    .eq('id', id);
+
+  await supabase
+    .from('asociado_empresa_nuevo_archivo')
+    .delete()
+    .eq('asociado_id_original', id);
+
+  alert('Restaurado correctamente');
+
+  renderArchivoView();
 }
