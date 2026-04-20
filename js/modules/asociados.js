@@ -677,7 +677,11 @@ async function renderFichaAsociado(id) {
   const { data: empresas, error: errorEmpresas } = await supabase
     .from('asociado_empresa_nuevo')
     .select(`
+      id,
+      empresa_id,
       contacto_principal_empresa,
+      observaciones,
+      created_at,
       empresas_nuevo (
         id,
         nombre_empresa
@@ -745,8 +749,71 @@ async function renderFichaAsociado(id) {
 
   const eliminarBtn = document.getElementById('eliminarFichaBtn');
   if (eliminarBtn) {
-    eliminarBtn.addEventListener('click', () => {
-      alert('Siguiente paso: eliminar asociado');
+    eliminarBtn.addEventListener('click', async () => {
+      const ok = confirm('Esto hará copia de seguridad y luego eliminará el asociado. ¿Continuar?');
+      if (!ok) return;
+
+      const msg = document.getElementById('msgFichaAsociado');
+      msg.textContent = 'Haciendo backup y eliminando...';
+      msg.className = 'message';
+
+      const payloadAsociadoArchivo = {
+        id: asociado.id,
+        nombre: asociado.nombre,
+        apellidos: asociado.apellidos,
+        telefono: asociado.telefono,
+        email: asociado.email,
+        poblacion: asociado.poblacion,
+        tipo_membresia: asociado.tipo_membresia,
+        paga_cuota: asociado.paga_cuota,
+        cargo_asume: asociado.cargo_asume,
+        estado: asociado.estado,
+        user_id: asociado.user_id,
+        created_at: asociado.created_at
+      };
+
+      const { error: backupAsociadoError } = await supabase
+        .from('asociados_nuevo_archivo')
+        .insert([payloadAsociadoArchivo]);
+
+      if (backupAsociadoError) {
+        msg.textContent = 'Error al guardar backup del asociado: ' + backupAsociadoError.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      if (empresas && empresas.length > 0) {
+        const payloadRelacionesArchivo = empresas.map(item => ({
+          asociado_id_original: asociado.id,
+          empresa_id: item.empresa_id,
+          contacto_principal_empresa: item.contacto_principal_empresa,
+          observaciones: item.observaciones,
+          created_at: item.created_at
+        }));
+
+        const { error: backupRelacionesError } = await supabase
+          .from('asociado_empresa_nuevo_archivo')
+          .insert(payloadRelacionesArchivo);
+
+        if (backupRelacionesError) {
+          msg.textContent = 'Error al guardar backup de relaciones: ' + backupRelacionesError.message;
+          msg.className = 'message error';
+          return;
+        }
+      }
+
+      const { error: deleteError } = await supabase
+        .from('asociados_nuevo')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        msg.textContent = 'Error al eliminar asociado: ' + deleteError.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      await renderAsociadosInterna('', 'todos', false, false, false);
     });
   }
 }
