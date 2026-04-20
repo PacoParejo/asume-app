@@ -208,6 +208,56 @@ function getNuevaEmpresaFormHTML() {
   `;
 }
 
+function getVincularFormHTML(asociados = [], empresas = []) {
+  const opcionesAsociados = (asociados || [])
+    .map(a => `<option value="${a.id}">${a.nombre} ${a.apellidos || ''}</option>`)
+    .join('');
+
+  const opcionesEmpresas = (empresas || [])
+    .map(e => `<option value="${e.id}">${e.nombre_empresa}</option>`)
+    .join('');
+
+  return `
+    <div class="form-card">
+      <h3>Vincular asociado y empresa</h3>
+      <form id="vincularForm">
+        <div class="form-grid">
+          <div>
+            <label for="vincular_asociado_id">Asociado</label>
+            <select id="vincular_asociado_id" required>
+              <option value="">Selecciona asociado</option>
+              ${opcionesAsociados}
+            </select>
+          </div>
+
+          <div>
+            <label for="vincular_empresa_id">Empresa</label>
+            <select id="vincular_empresa_id" required>
+              <option value="">Selecciona empresa</option>
+              ${opcionesEmpresas}
+            </select>
+          </div>
+
+          <div>
+            <label for="vincular_principal">¿Contacto principal?</label>
+            <select id="vincular_principal">
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="top-actions" style="justify-content:flex-start; margin-top:16px;">
+          <button type="submit">Guardar vínculo</button>
+          <button type="button" id="cancelarVincularBtn" class="secondary-btn">Cancelar</button>
+        </div>
+      </form>
+
+      <div id="vincularMsg" class="message"></div>
+    </div>
+  `;
+}
+
 function getFichaAsociadoHTML(asociado, empresas) {
   const listaEmpresas = (empresas || []).map(item => {
     const nombre = item.empresas_nuevo?.nombre_empresa || '';
@@ -308,14 +358,15 @@ function getEditarAsociadoFormHTML(asociado) {
 }
 
 export async function renderAsociadosView() {
-  await renderAsociadosInterna('', 'todos', false, false);
+  await renderAsociadosInterna('', 'todos', false, false, false);
 }
 
 async function renderAsociadosInterna(
   busqueda = '',
   estadoFiltro = 'todos',
   mostrarFormNuevo = false,
-  mostrarFormEmpresa = false
+  mostrarFormEmpresa = false,
+  mostrarFormVincular = false
 ) {
   setView('Asociados', '<p class="loading">Cargando asociados...</p>');
 
@@ -329,11 +380,30 @@ async function renderAsociadosInterna(
     return;
   }
 
+  let asociadosParaVincular = [];
+  let empresasParaVincular = [];
+
+  if (mostrarFormVincular) {
+    const { data: asociadosRaw } = await supabase
+      .from('asociados_nuevo')
+      .select('id, nombre, apellidos')
+      .order('nombre', { ascending: true });
+
+    const { data: empresasRaw } = await supabase
+      .from('empresas_nuevo')
+      .select('id, nombre_empresa')
+      .order('nombre_empresa', { ascending: true });
+
+    asociadosParaVincular = asociadosRaw || [];
+    empresasParaVincular = empresasRaw || [];
+  }
+
   const dataFiltrada = filtrarAsociados(data || [], busqueda, estadoFiltro);
   const resumen = getResumen(dataFiltrada);
   const filtrosHTML = getFiltrosHTML(busqueda, estadoFiltro, resumen);
   const nuevoAsociadoFormHTML = mostrarFormNuevo ? getNuevoAsociadoFormHTML() : '';
   const nuevaEmpresaFormHTML = mostrarFormEmpresa ? getNuevaEmpresaFormHTML() : '';
+  const vincularFormHTML = mostrarFormVincular ? getVincularFormHTML(asociadosParaVincular, empresasParaVincular) : '';
 
   const rows = dataFiltrada.map(item => `
     <tr>
@@ -375,6 +445,7 @@ async function renderAsociadosInterna(
 
     ${nuevoAsociadoFormHTML}
     ${nuevaEmpresaFormHTML}
+    ${vincularFormHTML}
 
     <div class="form-card">
       <div class="helper">
@@ -414,35 +485,35 @@ async function renderAsociadosInterna(
       const nuevaBusqueda = document.getElementById('busquedaAsociados')?.value || '';
       const nuevoEstado = document.getElementById('filtroEstadoAsociados')?.value || 'todos';
 
-      await renderAsociadosInterna(nuevaBusqueda, nuevoEstado, false, false);
+      await renderAsociadosInterna(nuevaBusqueda, nuevoEstado, false, false, false);
     });
   }
 
   const limpiarFiltrosBtn = document.getElementById('limpiarFiltrosBtn');
   if (limpiarFiltrosBtn) {
     limpiarFiltrosBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna('', 'todos', false, false);
+      await renderAsociadosInterna('', 'todos', false, false, false);
     });
   }
 
   const nuevoAsociadoBtn = document.getElementById('nuevoAsociadoBtn');
   if (nuevoAsociadoBtn) {
     nuevoAsociadoBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(busqueda, estadoFiltro, true, false);
+      await renderAsociadosInterna(busqueda, estadoFiltro, true, false, false);
     });
   }
 
   const nuevaEmpresaBtn = document.getElementById('nuevaEmpresaBtn');
   if (nuevaEmpresaBtn) {
     nuevaEmpresaBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(busqueda, estadoFiltro, false, true);
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, true, false);
     });
   }
 
   const vincularBtn = document.getElementById('vincularBtn');
   if (vincularBtn) {
-    vincularBtn.addEventListener('click', () => {
-      alert('Siguiente paso: formulario para vincular asociado y empresa');
+    vincularBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, false, true);
     });
   }
 
@@ -457,7 +528,7 @@ async function renderAsociadosInterna(
   const cancelarNuevoAsociadoBtn = document.getElementById('cancelarNuevoAsociadoBtn');
   if (cancelarNuevoAsociadoBtn) {
     cancelarNuevoAsociadoBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, false, false);
     });
   }
 
@@ -496,7 +567,7 @@ async function renderAsociadosInterna(
       msg.className = 'message success';
 
       setTimeout(async () => {
-        await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
+        await renderAsociadosInterna(busqueda, estadoFiltro, false, false, false);
       }, 600);
     });
   }
@@ -504,7 +575,7 @@ async function renderAsociadosInterna(
   const cancelarNuevaEmpresaBtn = document.getElementById('cancelarNuevaEmpresaBtn');
   if (cancelarNuevaEmpresaBtn) {
     cancelarNuevaEmpresaBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, false, false);
     });
   }
 
@@ -538,7 +609,48 @@ async function renderAsociadosInterna(
       msg.className = 'message success';
 
       setTimeout(async () => {
-        await renderAsociadosInterna(busqueda, estadoFiltro, false, false);
+        await renderAsociadosInterna(busqueda, estadoFiltro, false, false, false);
+      }, 600);
+    });
+  }
+
+  const cancelarVincularBtn = document.getElementById('cancelarVincularBtn');
+  if (cancelarVincularBtn) {
+    cancelarVincularBtn.addEventListener('click', async () => {
+      await renderAsociadosInterna(busqueda, estadoFiltro, false, false, false);
+    });
+  }
+
+  const vincularForm = document.getElementById('vincularForm');
+  if (vincularForm) {
+    vincularForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('vincularMsg');
+      msg.textContent = 'Guardando vínculo...';
+      msg.className = 'message';
+
+      const payload = {
+        asociado_id: Number(document.getElementById('vincular_asociado_id').value),
+        empresa_id: Number(document.getElementById('vincular_empresa_id').value),
+        contacto_principal_empresa: document.getElementById('vincular_principal').value === 'true'
+      };
+
+      const { error: insertError } = await supabase
+        .from('asociado_empresa_nuevo')
+        .insert([payload]);
+
+      if (insertError) {
+        msg.textContent = 'Error al guardar: ' + insertError.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = 'Vínculo guardado correctamente';
+      msg.className = 'message success';
+
+      setTimeout(async () => {
+        await renderAsociadosInterna(busqueda, estadoFiltro, false, false, false);
       }, 600);
     });
   }
@@ -579,7 +691,7 @@ async function renderFichaAsociado(id) {
   const volverBtn = document.getElementById('volverListadoBtn');
   if (volverBtn) {
     volverBtn.addEventListener('click', async () => {
-      await renderAsociadosInterna('', 'todos', false, false);
+      await renderAsociadosInterna('', 'todos', false, false, false);
     });
   }
 
