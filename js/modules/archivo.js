@@ -45,7 +45,7 @@ export async function renderArchivoView() {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>ID original</th>
               <th>Nombre</th>
               <th>Teléfono</th>
               <th>Email</th>
@@ -65,81 +65,108 @@ export async function renderArchivoView() {
   `);
 
   const botones = document.querySelectorAll('.restaurarBtn');
-
   botones.forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = btn.dataset.id;
+      const id = Number(btn.dataset.id);
       await restaurarAsociado(id);
     });
   });
 }
 
-async function restaurarAsociado(id) {
+async function restaurarAsociado(idOriginal) {
   const ok = confirm('Esto restaurará el asociado y sus relaciones. ¿Continuar?');
   if (!ok) return;
 
-  // 1. recuperar asociado
-  const { data: asociado, error } = await supabase
+  // 1. Recuperar asociado archivado
+  const { data: asociadoArchivado, error: errorAsociado } = await supabase
     .from('asociados_nuevo_archivo')
     .select('*')
-    .eq('id', id)
+    .eq('id', idOriginal)
     .single();
 
-  if (error) {
-    alert('Error al recuperar asociado: ' + error.message);
+  if (errorAsociado || !asociadoArchivado) {
+    alert('Error al recuperar asociado archivado: ' + (errorAsociado?.message || 'No encontrado'));
     return;
   }
 
-  // 2. insertar en tabla activa
-  const { error: insertError } = await supabase
+  // 2. Insertar asociado en tabla activa y capturar ID nuevo
+  const { data: asociadoInsertado, error: insertError } = await supabase
     .from('asociados_nuevo')
     .insert([{
-      nombre: asociado.nombre,
-      apellidos: asociado.apellidos,
-      telefono: asociado.telefono,
-      email: asociado.email,
-      poblacion: asociado.poblacion,
-      tipo_membresia: asociado.tipo_membresia,
-      paga_cuota: asociado.paga_cuota,
-      cargo_asume: asociado.cargo_asume,
-      estado: 'activo'
+      nombre: asociadoArchivado.nombre,
+      apellidos: asociadoArchivado.apellidos,
+      telefono: asociadoArchivado.telefono,
+      email: asociadoArchivado.email,
+      poblacion: asociadoArchivado.poblacion,
+      tipo_membresia: asociadoArchivado.tipo_membresia,
+      paga_cuota: asociadoArchivado.paga_cuota,
+      cargo_asume: asociadoArchivado.cargo_asume,
+      estado: asociadoArchivado.estado || 'activo',
+      user_id: asociadoArchivado.user_id || null,
+      created_at: asociadoArchivado.created_at || null
     }])
     .select()
     .single();
 
-  if (insertError) {
-    alert('Error al restaurar asociado: ' + insertError.message);
+  if (insertError || !asociadoInsertado) {
+    alert('Error al restaurar asociado: ' + (insertError?.message || 'No se pudo insertar'));
     return;
   }
 
-  // 3. recuperar relaciones
-  const { data: relaciones } = await supabase
+  const nuevoAsociadoId = asociadoInsertado.id;
+
+  // 3. Recuperar relaciones archivadas
+  const { data: relacionesArchivadas, error: errorRelaciones } = await supabase
     .from('asociado_empresa_nuevo_archivo')
     .select('*')
-    .eq('asociado_id_original', id);
+    .eq('asociado_id_original', idOriginal);
 
-  if (relaciones && relaciones.length > 0) {
-    const payload = relaciones.map(r => ({
-      asociado_id: insertError?.id || null,
-      empresa_id: r.empresa_id,
-      contacto_principal_empresa: r.contacto_principal_empresa
-    }));
-
-    await supabase.from('asociado_empresa_nuevo').insert(payload);
+  if (errorRelaciones) {
+    alert('Asociado restaurado, pero hubo error al leer relaciones archivadas: ' + errorRelaciones.message);
+    return;
   }
 
-  // 4. borrar del archivo
-  await supabase
+  // 4. Restaurar relaciones si existen
+  if (relacionesArchivadas && relacionesArchivadas.length > 0) {
+    const payloadRelaciones = relacionesArchivadas.map(rel => ({
+      asociado_id: nuevoAsociadoId,
+      empresa_id: rel.empresa_id,
+      contacto_principal_empresa: rel.contacto_principal_empresa,
+      observaciones: rel.observaciones || null,
+      created_at: rel.created_at || null
+    }));
+
+    const { error: insertRelacionesError } = await supabase
+      .from('asociado_empresa_nuevo')
+      .insert(payloadRelaciones);
+
+    if (insertRelacionesError) {
+      alert('Asociado restaurado, pero hubo error al restaurar relaciones: ' + insertRelacionesError.message);
+      return;
+    }
+  }
+
+  // 5. Borrar del archivo solo cuando todo ha salido bien
+  const { error: deleteArchivoAsociadoError } = await supabase
     .from('asociados_nuevo_archivo')
     .delete()
-    .eq('id', id);
+    .eq('id', idOriginal);
 
-  await supabase
+  if (deleteArchivoAsociadoError) {
+    alert('Restaurado, pero no se pudo limpiar el archivo del asociado: ' + deleteArchivoAsociadoError.message);
+    return;
+  }
+
+  const { error: deleteArchivoRelacionesError } = await supabase
     .from('asociado_empresa_nuevo_archivo')
     .delete()
-    .eq('asociado_id_original', id);
+    .eq('asociado_id_original', idOriginal);
+
+  if (deleteArchivoRelacionesError) {
+    alert('Restaurado, pero no se pudieron limpiar las relaciones archivadas: ' + deleteArchivoRelacionesError.message);
+    return;
+  }
 
   alert('Restaurado correctamente');
-
-  renderArchivoView();
+  await renderArchivoView();
 }
