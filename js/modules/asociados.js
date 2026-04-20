@@ -265,6 +265,8 @@ function getFichaAsociadoHTML(asociado, empresas) {
     return `<li>${nombre}${principal}</li>`;
   }).join('');
 
+  const textoBotonBaja = asociado.estado === 'baja' ? '▶ Reactivar' : '⏸ Dar de baja';
+
   return `
     <div class="form-card">
       <h2>${asociado.nombre || ''} ${asociado.apellidos || ''}</h2>
@@ -285,9 +287,11 @@ function getFichaAsociadoHTML(asociado, empresas) {
       <div class="top-actions" style="justify-content:flex-start; margin-top:20px;">
         <button id="volverListadoBtn" class="secondary-btn">⬅ Volver</button>
         <button id="editarFichaBtn">✏️ Editar</button>
-        <button id="darBajaFichaBtn" class="secondary-btn">⏸ Dar de baja</button>
+        <button id="darBajaFichaBtn" class="secondary-btn">${textoBotonBaja}</button>
         <button id="eliminarFichaBtn" class="danger-btn">🗑 Eliminar</button>
       </div>
+
+      <div id="msgFichaAsociado" class="message"></div>
     </div>
   `;
 }
@@ -704,8 +708,38 @@ async function renderFichaAsociado(id) {
 
   const darBajaBtn = document.getElementById('darBajaFichaBtn');
   if (darBajaBtn) {
-    darBajaBtn.addEventListener('click', () => {
-      alert('Siguiente paso: dar de baja al asociado');
+    darBajaBtn.addEventListener('click', async () => {
+      const esBaja = asociado.estado === 'baja';
+      const pregunta = esBaja
+        ? '¿Quieres reactivar este asociado?'
+        : '¿Seguro que quieres dar de baja este asociado?';
+
+      const ok = confirm(pregunta);
+      if (!ok) return;
+
+      const nuevoEstado = esBaja ? 'activo' : 'baja';
+
+      const { error } = await supabase
+        .from('asociados_nuevo')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      const msg = document.getElementById('msgFichaAsociado');
+
+      if (error) {
+        msg.textContent = 'Error al cambiar estado: ' + error.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = esBaja
+        ? 'Asociado reactivado correctamente'
+        : 'Asociado dado de baja correctamente';
+      msg.className = 'message success';
+
+      setTimeout(async () => {
+        await renderFichaAsociado(id);
+      }, 600);
     });
   }
 
