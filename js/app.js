@@ -6,7 +6,7 @@ import {
 } from './supabase.js';
 import { renderAsociadosView } from './modules/asociados.js';
 import { renderArchivoView } from './modules/archivo.js';
-import { renderBolsaView } from './modules/bolsa.js';
+import { renderBolsaView } from '/js/modules/bolsa.js';
 
 // ===============================
 // REFERENCIAS DOM
