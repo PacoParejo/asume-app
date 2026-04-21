@@ -6,6 +6,7 @@ import {
 } from './supabase.js';
 import { renderAsociadosView } from './modules/asociados.js';
 import { renderArchivoView } from './modules/archivo.js';
+import { renderBolsaView } from './modules/bolsa.js';
 
 // ===============================
 // REFERENCIAS DOM
@@ -70,10 +71,12 @@ function getMenuForRole(role) {
     superadmin: [
       { key: 'dashboard', label: '🏠 Dashboard' },
       { key: 'asociados', label: '🏢 Asociados' },
-      { key: 'archivo', label: '🗃️ Archivo' }
+      { key: 'archivo', label: '🗃️ Archivo' },
+      { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
     ],
     asociado: [
-      { key: 'dashboard', label: '🏠 Dashboard' }
+      { key: 'dashboard', label: '🏠 Dashboard' },
+      { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
     ]
   };
 
@@ -114,6 +117,11 @@ async function openView(key) {
 
   if (key === 'archivo') {
     await renderArchivoView();
+    return;
+  }
+
+  if (key === 'bolsa') {
+    await renderBolsaView();
     return;
   }
 }
