@@ -8,6 +8,10 @@ function setView(title, html) {
   if (viewContent) viewContent.innerHTML = html;
 }
 
+function safe(value) {
+  return value ?? '';
+}
+
 function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
   const esEdicion = modo === 'editar';
   const titulo = esEdicion ? 'Editar oferta de empleo' : 'Nueva oferta de empleo';
@@ -20,7 +24,7 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
         <div class="form-grid">
           <div>
             <label for="oferta_titulo">Título</label>
-            <input type="text" id="oferta_titulo" value="${oferta.titulo || ''}" required />
+            <input type="text" id="oferta_titulo" value="${safe(oferta.titulo)}" required />
           </div>
 
           <div>
@@ -31,9 +35,49 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
             </select>
           </div>
 
+          <div>
+            <label for="oferta_empresa_busca">Empresa que busca trabajador</label>
+            <input type="text" id="oferta_empresa_busca" value="${safe(oferta.empresa_busca)}" />
+          </div>
+
+          <div>
+            <label for="oferta_trabajo_realizar">Trabajo a realizar</label>
+            <input type="text" id="oferta_trabajo_realizar" value="${safe(oferta.trabajo_realizar)}" />
+          </div>
+
           <div class="full-width">
-            <label for="oferta_descripcion">Descripción</label>
-            <textarea id="oferta_descripcion" rows="5">${oferta.descripcion || ''}</textarea>
+            <label for="oferta_perfil_busca">Perfil que se busca</label>
+            <textarea id="oferta_perfil_busca" rows="4">${safe(oferta.perfil_busca)}</textarea>
+          </div>
+
+          <div class="full-width">
+            <label for="oferta_condiciones">Condiciones</label>
+            <textarea id="oferta_condiciones" rows="4">${safe(oferta.condiciones)}</textarea>
+          </div>
+
+          <div>
+            <label for="oferta_horario">Horario</label>
+            <input type="text" id="oferta_horario" value="${safe(oferta.horario)}" />
+          </div>
+
+          <div>
+            <label for="oferta_dias">Días</label>
+            <input type="text" id="oferta_dias" value="${safe(oferta.dias)}" />
+          </div>
+
+          <div>
+            <label for="oferta_sueldo">Sueldo</label>
+            <input type="text" id="oferta_sueldo" value="${safe(oferta.sueldo)}" />
+          </div>
+
+          <div>
+            <label for="oferta_inicio">Inicio</label>
+            <input type="text" id="oferta_inicio" value="${safe(oferta.inicio)}" />
+          </div>
+
+          <div>
+            <label for="oferta_fin">Fin</label>
+            <input type="text" id="oferta_fin" value="${safe(oferta.fin)}" />
           </div>
 
           <div>
@@ -42,6 +86,11 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
               <option value="true" ${oferta.prioridad ? 'selected' : ''}>Sí</option>
               <option value="false" ${!oferta.prioridad ? 'selected' : ''}>No</option>
             </select>
+          </div>
+
+          <div class="full-width">
+            <label for="oferta_descripcion">Descripción general</label>
+            <textarea id="oferta_descripcion" rows="5">${safe(oferta.descripcion)}</textarea>
           </div>
         </div>
 
@@ -63,8 +112,13 @@ function getCvFormHTML() {
       <form id="cvForm">
         <div class="form-grid">
           <div>
-            <label for="cv_nombre">Nombre</label>
+            <label for="cv_nombre">Nombre completo *</label>
             <input type="text" id="cv_nombre" required />
+          </div>
+
+          <div>
+            <label for="cv_email">Email *</label>
+            <input type="email" id="cv_email" required />
           </div>
 
           <div>
@@ -73,8 +127,13 @@ function getCvFormHTML() {
           </div>
 
           <div>
-            <label for="cv_email">Email</label>
-            <input type="email" id="cv_email" />
+            <label for="cv_poblacion">Población</label>
+            <input type="text" id="cv_poblacion" />
+          </div>
+
+          <div>
+            <label for="cv_foto_url">Foto (URL)</label>
+            <input type="text" id="cv_foto_url" />
           </div>
 
           <div>
@@ -85,17 +144,83 @@ function getCvFormHTML() {
             </select>
           </div>
 
-          <div class="full-width">
-            <label for="cv_descripcion">Perfil / experiencia</label>
-            <textarea id="cv_descripcion" rows="5"></textarea>
-          </div>
-
           <div>
             <label for="cv_prioridad">¿Prioritario?</label>
             <select id="cv_prioridad">
               <option value="true">Sí</option>
               <option value="false" selected>No</option>
             </select>
+          </div>
+
+          <div class="full-width">
+            <label for="cv_carta_presentacion">Carta de presentación</label>
+            <textarea id="cv_carta_presentacion" rows="5"></textarea>
+          </div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <h4>Experiencia laboral 1</h4>
+          <div class="form-grid">
+            <div><label for="cv_trabajo_1_empresa">Empresa</label><input type="text" id="cv_trabajo_1_empresa" /></div>
+            <div><label for="cv_trabajo_1_ocupacion">Ocupación</label><input type="text" id="cv_trabajo_1_ocupacion" /></div>
+            <div><label for="cv_trabajo_1_inicio">Inicio</label><input type="text" id="cv_trabajo_1_inicio" /></div>
+            <div><label for="cv_trabajo_1_fin">Fin</label><input type="text" id="cv_trabajo_1_fin" /></div>
+            <div class="full-width"><label for="cv_trabajo_1_desarrollo">Desarrollo</label><textarea id="cv_trabajo_1_desarrollo" rows="3"></textarea></div>
+          </div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <h4>Experiencia laboral 2</h4>
+          <div class="form-grid">
+            <div><label for="cv_trabajo_2_empresa">Empresa</label><input type="text" id="cv_trabajo_2_empresa" /></div>
+            <div><label for="cv_trabajo_2_ocupacion">Ocupación</label><input type="text" id="cv_trabajo_2_ocupacion" /></div>
+            <div><label for="cv_trabajo_2_inicio">Inicio</label><input type="text" id="cv_trabajo_2_inicio" /></div>
+            <div><label for="cv_trabajo_2_fin">Fin</label><input type="text" id="cv_trabajo_2_fin" /></div>
+            <div class="full-width"><label for="cv_trabajo_2_desarrollo">Desarrollo</label><textarea id="cv_trabajo_2_desarrollo" rows="3"></textarea></div>
+          </div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <h4>Experiencia laboral 3</h4>
+          <div class="form-grid">
+            <div><label for="cv_trabajo_3_empresa">Empresa</label><input type="text" id="cv_trabajo_3_empresa" /></div>
+            <div><label for="cv_trabajo_3_ocupacion">Ocupación</label><input type="text" id="cv_trabajo_3_ocupacion" /></div>
+            <div><label for="cv_trabajo_3_inicio">Inicio</label><input type="text" id="cv_trabajo_3_inicio" /></div>
+            <div><label for="cv_trabajo_3_fin">Fin</label><input type="text" id="cv_trabajo_3_fin" /></div>
+            <div class="full-width"><label for="cv_trabajo_3_desarrollo">Desarrollo</label><textarea id="cv_trabajo_3_desarrollo" rows="3"></textarea></div>
+          </div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <h4>Estudios 1</h4>
+          <div class="form-grid">
+            <div><label for="cv_estudio_1_titulo">Curso o título</label><input type="text" id="cv_estudio_1_titulo" /></div>
+            <div><label for="cv_estudio_1_centro">Colegio / academia / centro</label><input type="text" id="cv_estudio_1_centro" /></div>
+            <div><label for="cv_estudio_1_inicio">Inicio</label><input type="text" id="cv_estudio_1_inicio" /></div>
+            <div><label for="cv_estudio_1_fin">Fin</label><input type="text" id="cv_estudio_1_fin" /></div>
+            <div><label for="cv_estudio_1_nota">Nota</label><input type="text" id="cv_estudio_1_nota" /></div>
+          </div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <h4>Estudios 2</h4>
+          <div class="form-grid">
+            <div><label for="cv_estudio_2_titulo">Curso o título</label><input type="text" id="cv_estudio_2_titulo" /></div>
+            <div><label for="cv_estudio_2_centro">Colegio / academia / centro</label><input type="text" id="cv_estudio_2_centro" /></div>
+            <div><label for="cv_estudio_2_inicio">Inicio</label><input type="text" id="cv_estudio_2_inicio" /></div>
+            <div><label for="cv_estudio_2_fin">Fin</label><input type="text" id="cv_estudio_2_fin" /></div>
+            <div><label for="cv_estudio_2_nota">Nota</label><input type="text" id="cv_estudio_2_nota" /></div>
+          </div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <h4>Estudios 3</h4>
+          <div class="form-grid">
+            <div><label for="cv_estudio_3_titulo">Curso o título</label><input type="text" id="cv_estudio_3_titulo" /></div>
+            <div><label for="cv_estudio_3_centro">Colegio / academia / centro</label><input type="text" id="cv_estudio_3_centro" /></div>
+            <div><label for="cv_estudio_3_inicio">Inicio</label><input type="text" id="cv_estudio_3_inicio" /></div>
+            <div><label for="cv_estudio_3_fin">Fin</label><input type="text" id="cv_estudio_3_fin" /></div>
+            <div><label for="cv_estudio_3_nota">Nota</label><input type="text" id="cv_estudio_3_nota" /></div>
           </div>
         </div>
 
