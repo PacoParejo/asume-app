@@ -8,95 +8,21 @@ function setView(title, html) {
   if (viewContent) viewContent.innerHTML = html;
 }
 
-// ===============================
-// FORMULARIOS
-// ===============================
-
-function getNuevaOfertaFormHTML() {
-  return `
-    <div class="form-card">
-      <h3>Nueva oferta de empleo</h3>
-      <form id="ofertaForm">
-        <input type="hidden" id="oferta_id" />
-
-        <div class="form-grid">
-          <div>
-            <label>Título</label>
-            <input type="text" id="oferta_titulo" required />
-          </div>
-
-          <div>
-            <label>Empresa</label>
-            <input type="text" id="oferta_empresa" />
-          </div>
-
-          <div class="full-width">
-            <label>Trabajo a realizar</label>
-            <textarea id="oferta_trabajo"></textarea>
-          </div>
-
-          <div class="full-width">
-            <label>Perfil buscado</label>
-            <textarea id="oferta_perfil"></textarea>
-          </div>
-
-          <div class="full-width">
-            <label>Condiciones</label>
-            <textarea id="oferta_condiciones"></textarea>
-          </div>
-
-          <div>
-            <label>Inicio</label>
-            <input type="date" id="oferta_inicio" />
-          </div>
-
-          <div>
-            <label>Fin</label>
-            <input type="date" id="oferta_fin" />
-          </div>
-
-          <div>
-            <label>Estado</label>
-            <select id="oferta_estado">
-              <option value="activa">activa</option>
-              <option value="cerrada">cerrada</option>
-            </select>
-          </div>
-
-          <div>
-            <label>¿Prioritaria?</label>
-            <select id="oferta_prioridad">
-              <option value="true">Sí</option>
-              <option value="false">No</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="top-actions">
-          <button type="submit">Guardar oferta</button>
-          <button type="button" id="cancelarOfertaBtn">Cancelar</button>
-        </div>
-      </form>
-
-      <div id="ofertaMsg" class="message"></div>
-    </div>
-  `;
-}
-
 function getNuevoCVFormHTML() {
   return `
     <div class="form-card">
       <h3>Nuevo Currículum Vitae</h3>
-      <form id="cvForm">
 
+      <form id="nuevoCVForm">
         <div class="form-grid">
+
           <div>
-            <label>Nombre</label>
+            <label>Nombre *</label>
             <input type="text" id="cv_nombre" required />
           </div>
 
           <div>
-            <label>Email</label>
+            <label>Email *</label>
             <input type="email" id="cv_email" required />
           </div>
 
@@ -112,199 +38,147 @@ function getNuevoCVFormHTML() {
 
           <div class="full-width">
             <label>Carta de presentación</label>
-            <textarea id="cv_carta"></textarea>
-          </div>
-
-          <div>
-            <label>Estado</label>
-            <select id="cv_estado">
-              <option value="activo">activo</option>
-              <option value="inactivo">inactivo</option>
-            </select>
+            <textarea id="cv_carta" rows="4"></textarea>
           </div>
 
           <div>
             <label>¿Prioritario?</label>
             <select id="cv_prioridad">
-              <option value="true">Sí</option>
               <option value="false">No</option>
+              <option value="true">Sí</option>
             </select>
           </div>
+
         </div>
 
-        <div class="top-actions">
+        <h4>Experiencia (hasta 3)</h4>
+
+        ${[1,2,3].map(i => `
+          <div class="form-grid">
+            <div>
+              <label>Empresa ${i}</label>
+              <input type="text" id="exp_empresa_${i}" />
+            </div>
+            <div>
+              <label>Puesto</label>
+              <input type="text" id="exp_puesto_${i}" />
+            </div>
+            <div>
+              <label>Inicio</label>
+              <input type="date" id="exp_inicio_${i}" />
+            </div>
+            <div>
+              <label>Fin</label>
+              <input type="date" id="exp_fin_${i}" />
+            </div>
+          </div>
+        `).join('')}
+
+        <h4>Estudios (hasta 3)</h4>
+
+        ${[1,2,3].map(i => `
+          <div class="form-grid">
+            <div>
+              <label>Título ${i}</label>
+              <input type="text" id="est_titulo_${i}" />
+            </div>
+            <div>
+              <label>Centro</label>
+              <input type="text" id="est_centro_${i}" />
+            </div>
+            <div>
+              <label>Inicio</label>
+              <input type="date" id="est_inicio_${i}" />
+            </div>
+            <div>
+              <label>Fin</label>
+              <input type="date" id="est_fin_${i}" />
+            </div>
+          </div>
+        `).join('')}
+
+        <div class="top-actions" style="margin-top:16px;">
           <button type="submit">Guardar CV</button>
-          <button type="button" id="cancelarCVBtn">Cancelar</button>
+          <button type="button" id="cancelarCVBtn" class="secondary-btn">Cancelar</button>
         </div>
 
       </form>
 
-      <div id="cvMsg" class="message"></div>
+      <div id="nuevoCVMsg" class="message"></div>
     </div>
   `;
 }
 
-// ===============================
-// RENDER PRINCIPAL
-// ===============================
-
-export async function renderBolsaView(
-  mostrarFormOferta = false,
-  mostrarFormCV = false
-) {
-  setView('Bolsa de Trabajo', '<p>Cargando...</p>');
-
-  const { data: ofertas } = await supabase
-    .from('ofertas_empleo')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  const { data: cvs } = await supabase
-    .from('cvs')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  const ofertaRows = (ofertas || []).map(o => `
-    <tr>
-      <td>${o.id}</td>
-      <td>${o.titulo || ''}</td>
-      <td>${o.empresa || ''}</td>
-      <td>${o.prioridad ? 'Sí' : 'No'}</td>
-      <td>${o.estado}</td>
-      <td>${new Date(o.created_at).toLocaleString()}</td>
-      <td>
-        <button onclick="editarOferta(${o.id})">Editar</button>
-      </td>
-    </tr>
-  `).join('');
-
-  const cvRows = (cvs || []).map(c => `
-    <tr>
-      <td>${c.id}</td>
-      <td>${c.nombre}</td>
-      <td>${c.telefono || ''}</td>
-      <td>${c.email}</td>
-      <td>${c.prioridad ? 'Sí' : 'No'}</td>
-      <td>${c.estado}</td>
-      <td>${new Date(c.created_at).toLocaleString()}</td>
-    </tr>
-  `).join('');
+export async function renderBolsaView(mostrarCV = false) {
+  const formHTML = mostrarCV ? getNuevoCVFormHTML() : '';
 
   setView('Bolsa de Trabajo', `
     <div class="asociado-header">
       <div>
-        Bolsa de Trabajo v1
+        <p>Bolsa de Trabajo v1</p>
       </div>
       <div class="table-actions">
-        <button id="nuevaOfertaBtn">➕ Nueva oferta</button>
         <button id="nuevoCVBtn">📄 Nuevo CV</button>
       </div>
     </div>
 
-    ${mostrarFormOferta ? getNuevaOfertaFormHTML() : ''}
-    ${mostrarFormCV ? getNuevoCVFormHTML() : ''}
-
-    <div class="form-card">
-      <h3>Ofertas</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Título</th>
-            <th>Empresa</th>
-            <th>Prioridad</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${ofertaRows || '<tr><td colspan="7">Sin ofertas</td></tr>'}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="form-card">
-      <h3>Currículum Vitae</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Prioridad</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${cvRows || '<tr><td colspan="7">Sin CV</td></tr>'}
-        </tbody>
-      </table>
-    </div>
+    ${formHTML}
   `);
 
-  // BOTONES
-  document.getElementById('nuevaOfertaBtn')?.addEventListener('click', () => {
-    renderBolsaView(true, false);
-  });
+  const nuevoCVBtn = document.getElementById('nuevoCVBtn');
+  if (nuevoCVBtn) {
+    nuevoCVBtn.onclick = () => renderBolsaView(true);
+  }
 
-  document.getElementById('nuevoCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, true);
-  });
+  const cancelarCVBtn = document.getElementById('cancelarCVBtn');
+  if (cancelarCVBtn) {
+    cancelarCVBtn.onclick = () => renderBolsaView(false);
+  }
 
-  document.getElementById('cancelarOfertaBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, false);
-  });
+  const form = document.getElementById('nuevoCVForm');
+  if (form) {
+    form.onsubmit = async (e) => {
+      e.preventDefault();
 
-  document.getElementById('cancelarCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, false);
-  });
+      const msg = document.getElementById('nuevoCVMsg');
+      msg.textContent = 'Guardando CV...';
 
-  // ===============================
-  // GUARDAR OFERTA
-  // ===============================
+      const experiencia = [1,2,3].map(i => ({
+        empresa: document.getElementById(`exp_empresa_${i}`).value,
+        puesto: document.getElementById(`exp_puesto_${i}`).value,
+        inicio: document.getElementById(`exp_inicio_${i}`).value,
+        fin: document.getElementById(`exp_fin_${i}`).value
+      }));
 
-  document.getElementById('ofertaForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+      const estudios = [1,2,3].map(i => ({
+        titulo: document.getElementById(`est_titulo_${i}`).value,
+        centro: document.getElementById(`est_centro_${i}`).value,
+        inicio: document.getElementById(`est_inicio_${i}`).value,
+        fin: document.getElementById(`est_fin_${i}`).value
+      }));
 
-    const payload = {
-      titulo: document.getElementById('oferta_titulo').value,
-      empresa: document.getElementById('oferta_empresa').value,
-      trabajo: document.getElementById('oferta_trabajo').value,
-      perfil: document.getElementById('oferta_perfil').value,
-      condiciones: document.getElementById('oferta_condiciones').value,
-      inicio: document.getElementById('oferta_inicio').value,
-      fin: document.getElementById('oferta_fin').value,
-      estado: document.getElementById('oferta_estado').value,
-      prioridad: document.getElementById('oferta_prioridad').value === 'true'
+      const payload = {
+        nombre: document.getElementById('cv_nombre').value,
+        email: document.getElementById('cv_email').value,
+        telefono: document.getElementById('cv_telefono').value,
+        poblacion: document.getElementById('cv_poblacion').value,
+        carta_presentacion: document.getElementById('cv_carta').value,
+        prioridad: document.getElementById('cv_prioridad').value === 'true',
+        experiencia,
+        estudios,
+        estado: 'activo'
+      };
+
+      const { error } = await supabase.from('cvs').insert([payload]);
+
+      if (error) {
+        msg.textContent = error.message;
+        return;
+      }
+
+      msg.textContent = 'CV guardado correctamente';
+
+      setTimeout(() => renderBolsaView(false), 600);
     };
-
-    await supabase.from('ofertas_empleo').insert([payload]);
-
-    renderBolsaView(false, false);
-  });
-
-  // ===============================
-  // GUARDAR CV
-  // ===============================
-
-  document.getElementById('cvForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const payload = {
-      nombre: document.getElementById('cv_nombre').value,
-      email: document.getElementById('cv_email').value,
-      telefono: document.getElementById('cv_telefono').value,
-      poblacion: document.getElementById('cv_poblacion').value,
-      carta_presentacion: document.getElementById('cv_carta').value,
-      estado: document.getElementById('cv_estado').value,
-      prioridad: document.getElementById('cv_prioridad').value === 'true'
-    };
-
-    await supabase.from('cvs').insert([payload]);
-
-    renderBolsaView(false, false);
-  });
+  }
 }
