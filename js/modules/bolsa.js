@@ -8,6 +8,10 @@ function setView(title, html) {
   if (viewContent) viewContent.innerHTML = html;
 }
 
+function safe(value) {
+  return value || '';
+}
+
 function limpiarLista(lista = []) {
   return (lista || []).filter(item =>
     Object.values(item || {}).some(valor => valor && valor.toString().trim() !== '')
@@ -25,7 +29,7 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
         <div class="form-grid">
           <div>
             <label>Título *</label>
-            <input type="text" id="oferta_titulo" value="${oferta.titulo || ''}" required />
+            <input type="text" id="oferta_titulo" value="${safe(oferta.titulo)}" required />
           </div>
 
           <div>
@@ -38,22 +42,47 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
 
           <div>
             <label>Empresa que busca trabajador</label>
-            <input type="text" id="oferta_empresa" />
+            <input type="text" id="oferta_empresa_busca" value="${safe(oferta.empresa_busca)}" />
           </div>
 
           <div>
             <label>Trabajo a realizar</label>
-            <input type="text" id="oferta_trabajo" />
+            <input type="text" id="oferta_trabajo_realizar" value="${safe(oferta.trabajo_realizar)}" />
           </div>
 
           <div class="full-width">
             <label>Perfil que se busca</label>
-            <textarea id="oferta_perfil" rows="3"></textarea>
+            <textarea id="oferta_perfil_busca" rows="3">${safe(oferta.perfil_busca)}</textarea>
           </div>
 
           <div class="full-width">
-            <label>Condiciones: horario, días, sueldo, inicio, fin...</label>
-            <textarea id="oferta_condiciones" rows="4">${oferta.descripcion || ''}</textarea>
+            <label>Condiciones generales</label>
+            <textarea id="oferta_condiciones" rows="3">${safe(oferta.condiciones)}</textarea>
+          </div>
+
+          <div>
+            <label>Horario</label>
+            <input type="text" id="oferta_horario" value="${safe(oferta.horario)}" />
+          </div>
+
+          <div>
+            <label>Días</label>
+            <input type="text" id="oferta_dias" value="${safe(oferta.dias)}" />
+          </div>
+
+          <div>
+            <label>Sueldo</label>
+            <input type="text" id="oferta_sueldo" value="${safe(oferta.sueldo)}" />
+          </div>
+
+          <div>
+            <label>Fecha inicio</label>
+            <input type="text" id="oferta_fecha_inicio" value="${safe(oferta.fecha_inicio)}" placeholder="dd/mm/aaaa" />
+          </div>
+
+          <div>
+            <label>Fecha fin</label>
+            <input type="text" id="oferta_fecha_fin" value="${safe(oferta.fecha_fin)}" placeholder="dd/mm/aaaa" />
           </div>
 
           <div>
@@ -62,6 +91,11 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
               <option value="false" ${!oferta.prioridad ? 'selected' : ''}>No</option>
               <option value="true" ${oferta.prioridad ? 'selected' : ''}>Sí</option>
             </select>
+          </div>
+
+          <div class="full-width">
+            <label>Descripción adicional</label>
+            <textarea id="oferta_descripcion" rows="3">${safe(oferta.descripcion)}</textarea>
           </div>
         </div>
 
@@ -153,7 +187,10 @@ function getListadoOfertasHTML(ofertas = []) {
     <tr>
       <td>${oferta.id}</td>
       <td>${oferta.titulo || ''}</td>
-      <td>${oferta.descripcion || ''}</td>
+      <td>${oferta.empresa_busca || ''}</td>
+      <td>${oferta.trabajo_realizar || ''}</td>
+      <td>${oferta.horario || ''}</td>
+      <td>${oferta.sueldo || ''}</td>
       <td>${oferta.prioridad ? 'Sí' : 'No'}</td>
       <td>${oferta.estado || ''}</td>
       <td>
@@ -176,14 +213,17 @@ function getListadoOfertasHTML(ofertas = []) {
             <tr>
               <th>ID</th>
               <th>Título</th>
-              <th>Descripción</th>
+              <th>Empresa</th>
+              <th>Trabajo</th>
+              <th>Horario</th>
+              <th>Sueldo</th>
               <th>Prioridad</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="6">No hay ofertas registradas todavía.</td></tr>'}
+            ${rows || '<tr><td colspan="9">No hay ofertas registradas todavía.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -279,20 +319,6 @@ function getFichaCVHTML(cv) {
   `;
 }
 
-function construirDescripcionOferta() {
-  const empresa = document.getElementById('oferta_empresa')?.value.trim() || '';
-  const trabajo = document.getElementById('oferta_trabajo')?.value.trim() || '';
-  const perfil = document.getElementById('oferta_perfil')?.value.trim() || '';
-  const condiciones = document.getElementById('oferta_condiciones')?.value.trim() || '';
-
-  return [
-    empresa ? `Empresa: ${empresa}` : '',
-    trabajo ? `Trabajo a realizar: ${trabajo}` : '',
-    perfil ? `Perfil buscado: ${perfil}` : '',
-    condiciones ? `Condiciones: ${condiciones}` : ''
-  ].filter(Boolean).join('\n');
-}
-
 export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo', ofertaEditar = null, mostrarCV = false) {
   setView('Bolsa de Trabajo', '<p class="loading">Cargando Bolsa de Trabajo...</p>');
 
@@ -365,7 +391,16 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
 
       const payload = {
         titulo: document.getElementById('oferta_titulo').value.trim(),
-        descripcion: construirDescripcionOferta(),
+        empresa_busca: document.getElementById('oferta_empresa_busca').value.trim() || null,
+        trabajo_realizar: document.getElementById('oferta_trabajo_realizar').value.trim() || null,
+        perfil_busca: document.getElementById('oferta_perfil_busca').value.trim() || null,
+        condiciones: document.getElementById('oferta_condiciones').value.trim() || null,
+        horario: document.getElementById('oferta_horario').value.trim() || null,
+        dias: document.getElementById('oferta_dias').value.trim() || null,
+        sueldo: document.getElementById('oferta_sueldo').value.trim() || null,
+        fecha_inicio: document.getElementById('oferta_fecha_inicio').value.trim() || null,
+        fecha_fin: document.getElementById('oferta_fecha_fin').value.trim() || null,
+        descripcion: document.getElementById('oferta_descripcion').value.trim() || null,
         estado: document.getElementById('oferta_estado').value,
         prioridad: document.getElementById('oferta_prioridad').value === 'true'
       };
