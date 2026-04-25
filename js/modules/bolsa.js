@@ -14,6 +14,68 @@ function limpiarLista(lista = []) {
   );
 }
 
+function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
+  const esEditar = modo === 'editar';
+
+  return `
+    <div class="form-card">
+      <h3>${esEditar ? 'Editar oferta' : 'Nueva oferta'}</h3>
+
+      <form id="ofertaForm">
+        <div class="form-grid">
+          <div>
+            <label>Título *</label>
+            <input type="text" id="oferta_titulo" value="${oferta.titulo || ''}" required />
+          </div>
+
+          <div>
+            <label>Estado</label>
+            <select id="oferta_estado">
+              <option value="activa" ${oferta.estado === 'activa' ? 'selected' : ''}>activa</option>
+              <option value="cerrada" ${oferta.estado === 'cerrada' ? 'selected' : ''}>cerrada</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Empresa que busca trabajador</label>
+            <input type="text" id="oferta_empresa" />
+          </div>
+
+          <div>
+            <label>Trabajo a realizar</label>
+            <input type="text" id="oferta_trabajo" />
+          </div>
+
+          <div class="full-width">
+            <label>Perfil que se busca</label>
+            <textarea id="oferta_perfil" rows="3"></textarea>
+          </div>
+
+          <div class="full-width">
+            <label>Condiciones: horario, días, sueldo, inicio, fin...</label>
+            <textarea id="oferta_condiciones" rows="4">${oferta.descripcion || ''}</textarea>
+          </div>
+
+          <div>
+            <label>¿Prioritaria?</label>
+            <select id="oferta_prioridad">
+              <option value="false" ${!oferta.prioridad ? 'selected' : ''}>No</option>
+              <option value="true" ${oferta.prioridad ? 'selected' : ''}>Sí</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="top-actions" style="margin-top:16px;">
+          <button type="submit">${esEditar ? 'Guardar cambios' : 'Guardar oferta'}</button>
+          <button type="button" id="cancelarOfertaBtn" class="secondary-btn">Cancelar</button>
+        </div>
+      </form>
+
+      <div id="ofertaMsg" class="message"></div>
+    </div>
+  `;
+}
+
 function getNuevoCVFormHTML() {
   return `
     <div class="form-card">
@@ -86,6 +148,49 @@ function getNuevoCVFormHTML() {
   `;
 }
 
+function getListadoOfertasHTML(ofertas = []) {
+  const rows = (ofertas || []).map(oferta => `
+    <tr>
+      <td>${oferta.id}</td>
+      <td>${oferta.titulo || ''}</td>
+      <td>${oferta.descripcion || ''}</td>
+      <td>${oferta.prioridad ? 'Sí' : 'No'}</td>
+      <td>${oferta.estado || ''}</td>
+      <td>
+        <div class="table-actions">
+          <button class="secondary-btn editarOfertaBtn" data-id="${oferta.id}">Editar</button>
+          <button class="secondary-btn toggleOfertaBtn" data-id="${oferta.id}" data-estado="${oferta.estado}">
+            ${oferta.estado === 'cerrada' ? 'Reabrir' : 'Cerrar'}
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="form-card">
+      <h3>Ofertas de empleo</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Título</th>
+              <th>Descripción</th>
+              <th>Prioridad</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="6">No hay ofertas registradas todavía.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function getListadoCVHTML(cvs = []) {
   const rows = (cvs || []).map(cv => `
     <tr>
@@ -136,8 +241,7 @@ function getFichaCVHTML(cv) {
     <li>
       <strong>${item.puesto || 'Puesto no indicado'}</strong>
       ${item.empresa ? ` en ${item.empresa}` : ''}
-      <br>
-      ${item.inicio || '-'} / ${item.fin || '-'}
+      <br>${item.inicio || '-'} / ${item.fin || '-'}
     </li>
   `).join('');
 
@@ -145,8 +249,7 @@ function getFichaCVHTML(cv) {
     <li>
       <strong>${item.titulo || 'Título no indicado'}</strong>
       ${item.centro ? ` - ${item.centro}` : ''}
-      <br>
-      ${item.inicio || '-'} / ${item.fin || '-'}
+      <br>${item.inicio || '-'} / ${item.fin || '-'}
     </li>
   `).join('');
 
@@ -176,22 +279,47 @@ function getFichaCVHTML(cv) {
   `;
 }
 
-export async function renderBolsaView(mostrarCV = false) {
+function construirDescripcionOferta() {
+  const empresa = document.getElementById('oferta_empresa')?.value.trim() || '';
+  const trabajo = document.getElementById('oferta_trabajo')?.value.trim() || '';
+  const perfil = document.getElementById('oferta_perfil')?.value.trim() || '';
+  const condiciones = document.getElementById('oferta_condiciones')?.value.trim() || '';
+
+  return [
+    empresa ? `Empresa: ${empresa}` : '',
+    trabajo ? `Trabajo a realizar: ${trabajo}` : '',
+    perfil ? `Perfil buscado: ${perfil}` : '',
+    condiciones ? `Condiciones: ${condiciones}` : ''
+  ].filter(Boolean).join('\n');
+}
+
+export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo', ofertaEditar = null, mostrarCV = false) {
   setView('Bolsa de Trabajo', '<p class="loading">Cargando Bolsa de Trabajo...</p>');
 
-  const { data: cvs, error } = await supabase
+  const { data: ofertas, error: errorOfertas } = await supabase
+    .from('ofertas_empleo')
+    .select('*')
+    .order('prioridad', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (errorOfertas) {
+    setView('Bolsa de Trabajo', `<p class="error">Error al cargar ofertas: ${errorOfertas.message}</p>`);
+    return;
+  }
+
+  const { data: cvs, error: errorCvs } = await supabase
     .from('cvs')
     .select('*')
     .order('prioridad', { ascending: false })
     .order('created_at', { ascending: false });
 
-  if (error) {
-    setView('Bolsa de Trabajo', `<p class="error">Error al cargar CV: ${error.message}</p>`);
+  if (errorCvs) {
+    setView('Bolsa de Trabajo', `<p class="error">Error al cargar CV: ${errorCvs.message}</p>`);
     return;
   }
 
-  const formHTML = mostrarCV ? getNuevoCVFormHTML() : '';
-  const listadoHTML = getListadoCVHTML(cvs || []);
+  const ofertaFormHTML = mostrarOferta ? getOfertaFormHTML(modoOferta, ofertaEditar || {}) : '';
+  const cvFormHTML = mostrarCV ? getNuevoCVFormHTML() : '';
 
   setView('Bolsa de Trabajo', `
     <div class="asociado-header">
@@ -199,35 +327,69 @@ export async function renderBolsaView(mostrarCV = false) {
         <p>Bolsa de Trabajo v1</p>
       </div>
       <div class="table-actions">
-        <button id="nuevoCVBtn">📄 Nuevo CV</button>
+        <button id="nuevaOfertaBtn">➕ Nueva oferta</button>
+        <button id="nuevoCVBtn" class="secondary-btn">📄 Nuevo CV</button>
       </div>
     </div>
 
-    ${formHTML}
-    ${listadoHTML}
+    ${ofertaFormHTML}
+    ${cvFormHTML}
+    ${getListadoOfertasHTML(ofertas || [])}
+    ${getListadoCVHTML(cvs || [])}
   `);
 
-  const nuevoCVBtn = document.getElementById('nuevoCVBtn');
-  if (nuevoCVBtn) {
-    nuevoCVBtn.onclick = () => renderBolsaView(true);
-  }
-
-  const cancelarCVBtn = document.getElementById('cancelarCVBtn');
-  if (cancelarCVBtn) {
-    cancelarCVBtn.onclick = () => renderBolsaView(false);
-  }
-
-  const verCVBtns = document.querySelectorAll('.verCVBtn');
-  verCVBtns.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-      await renderFichaCV(id);
-    });
+  document.getElementById('nuevaOfertaBtn')?.addEventListener('click', () => {
+    renderBolsaView(true, 'nuevo', null, false);
   });
 
-  const form = document.getElementById('nuevoCVForm');
-  if (form) {
-    form.onsubmit = async (e) => {
+  document.getElementById('nuevoCVBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, true);
+  });
+
+  document.getElementById('cancelarOfertaBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, false);
+  });
+
+  document.getElementById('cancelarCVBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, false);
+  });
+
+  const ofertaForm = document.getElementById('ofertaForm');
+  if (ofertaForm) {
+    ofertaForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('ofertaMsg');
+      msg.textContent = modoOferta === 'editar' ? 'Guardando cambios...' : 'Guardando oferta...';
+      msg.className = 'message';
+
+      const payload = {
+        titulo: document.getElementById('oferta_titulo').value.trim(),
+        descripcion: construirDescripcionOferta(),
+        estado: document.getElementById('oferta_estado').value,
+        prioridad: document.getElementById('oferta_prioridad').value === 'true'
+      };
+
+      const response = modoOferta === 'editar' && ofertaEditar?.id
+        ? await supabase.from('ofertas_empleo').update(payload).eq('id', ofertaEditar.id)
+        : await supabase.from('ofertas_empleo').insert([payload]);
+
+      if (response.error) {
+        msg.textContent = 'Error al guardar oferta: ' + response.error.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = 'Oferta guardada correctamente';
+      msg.className = 'message success';
+
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false), 600);
+    });
+  }
+
+  const formCV = document.getElementById('nuevoCVForm');
+  if (formCV) {
+    formCV.onsubmit = async (e) => {
       e.preventDefault();
 
       const msg = document.getElementById('nuevoCVMsg');
@@ -271,9 +433,44 @@ export async function renderBolsaView(mostrarCV = false) {
       msg.textContent = 'CV guardado correctamente';
       msg.className = 'message success';
 
-      setTimeout(() => renderBolsaView(false), 600);
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false), 600);
     };
   }
+
+  document.querySelectorAll('.editarOfertaBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      const oferta = (ofertas || []).find(item => item.id === id);
+      renderBolsaView(true, 'editar', oferta, false);
+    });
+  });
+
+  document.querySelectorAll('.toggleOfertaBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const estadoActual = btn.dataset.estado;
+      const nuevoEstado = estadoActual === 'cerrada' ? 'activa' : 'cerrada';
+
+      const { error } = await supabase
+        .from('ofertas_empleo')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al cambiar estado: ' + error.message);
+        return;
+      }
+
+      renderBolsaView(false, 'nuevo', null, false);
+    });
+  });
+
+  document.querySelectorAll('.verCVBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      await renderFichaCV(id);
+    });
+  });
 }
 
 async function renderFichaCV(id) {
@@ -292,10 +489,7 @@ async function renderFichaCV(id) {
 
   setView('Ficha CV', getFichaCVHTML(cv));
 
-  const volverBtn = document.getElementById('volverBolsaBtn');
-  if (volverBtn) {
-    volverBtn.addEventListener('click', async () => {
-      await renderBolsaView(false);
-    });
-  }
+  document.getElementById('volverBolsaBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, false);
+  });
 }
