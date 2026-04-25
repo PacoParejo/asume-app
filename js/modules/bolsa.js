@@ -110,43 +110,63 @@ function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
   `;
 }
 
-function getNuevoCVFormHTML() {
+function getCVFormHTML(modo = 'nuevo', cv = {}) {
+  const esEditar = modo === 'editar';
+  const experiencia = cv.experiencia || [];
+  const estudios = cv.estudios || [];
+
+  function exp(i, campo) {
+    return safe(experiencia[i - 1]?.[campo]);
+  }
+
+  function est(i, campo) {
+    return safe(estudios[i - 1]?.[campo]);
+  }
+
   return `
     <div class="form-card">
-      <h3>Nuevo Currículum Vitae</h3>
+      <h3>${esEditar ? 'Editar Currículum Vitae' : 'Nuevo Currículum Vitae'}</h3>
 
-      <form id="nuevoCVForm">
+      <form id="cvForm">
         <div class="form-grid">
           <div>
             <label>Nombre *</label>
-            <input type="text" id="cv_nombre" required />
+            <input type="text" id="cv_nombre" value="${safe(cv.nombre)}" required />
           </div>
 
           <div>
             <label>Email *</label>
-            <input type="email" id="cv_email" required />
+            <input type="email" id="cv_email" value="${safe(cv.email)}" required />
           </div>
 
           <div>
             <label>Teléfono</label>
-            <input type="text" id="cv_telefono" />
+            <input type="text" id="cv_telefono" value="${safe(cv.telefono)}" />
           </div>
 
           <div>
             <label>Población</label>
-            <input type="text" id="cv_poblacion" />
+            <input type="text" id="cv_poblacion" value="${safe(cv.poblacion)}" />
           </div>
 
           <div class="full-width">
             <label>Carta de presentación</label>
-            <textarea id="cv_carta" rows="4"></textarea>
+            <textarea id="cv_carta" rows="4">${safe(cv.carta_presentacion)}</textarea>
+          </div>
+
+          <div>
+            <label>Estado</label>
+            <select id="cv_estado">
+              <option value="activo" ${cv.estado === 'activo' ? 'selected' : ''}>activo</option>
+              <option value="inactivo" ${cv.estado === 'inactivo' ? 'selected' : ''}>inactivo</option>
+            </select>
           </div>
 
           <div>
             <label>¿Prioritario?</label>
             <select id="cv_prioridad">
-              <option value="false">No</option>
-              <option value="true">Sí</option>
+              <option value="false" ${!cv.prioridad ? 'selected' : ''}>No</option>
+              <option value="true" ${cv.prioridad ? 'selected' : ''}>Sí</option>
             </select>
           </div>
         </div>
@@ -154,30 +174,30 @@ function getNuevoCVFormHTML() {
         <h4>Experiencia (hasta 3)</h4>
         ${[1,2,3].map(i => `
           <div class="form-grid">
-            <div><label>Empresa ${i}</label><input type="text" id="exp_empresa_${i}" /></div>
-            <div><label>Puesto</label><input type="text" id="exp_puesto_${i}" /></div>
-            <div><label>Inicio</label><input type="date" id="exp_inicio_${i}" /></div>
-            <div><label>Fin</label><input type="date" id="exp_fin_${i}" /></div>
+            <div><label>Empresa ${i}</label><input type="text" id="exp_empresa_${i}" value="${exp(i, 'empresa')}" /></div>
+            <div><label>Puesto</label><input type="text" id="exp_puesto_${i}" value="${exp(i, 'puesto')}" /></div>
+            <div><label>Inicio</label><input type="date" id="exp_inicio_${i}" value="${exp(i, 'inicio')}" /></div>
+            <div><label>Fin</label><input type="date" id="exp_fin_${i}" value="${exp(i, 'fin')}" /></div>
           </div>
         `).join('')}
 
         <h4>Estudios (hasta 3)</h4>
         ${[1,2,3].map(i => `
           <div class="form-grid">
-            <div><label>Título ${i}</label><input type="text" id="est_titulo_${i}" /></div>
-            <div><label>Centro</label><input type="text" id="est_centro_${i}" /></div>
-            <div><label>Inicio</label><input type="date" id="est_inicio_${i}" /></div>
-            <div><label>Fin</label><input type="date" id="est_fin_${i}" /></div>
+            <div><label>Título ${i}</label><input type="text" id="est_titulo_${i}" value="${est(i, 'titulo')}" /></div>
+            <div><label>Centro</label><input type="text" id="est_centro_${i}" value="${est(i, 'centro')}" /></div>
+            <div><label>Inicio</label><input type="date" id="est_inicio_${i}" value="${est(i, 'inicio')}" /></div>
+            <div><label>Fin</label><input type="date" id="est_fin_${i}" value="${est(i, 'fin')}" /></div>
           </div>
         `).join('')}
 
         <div class="top-actions" style="margin-top:16px;">
-          <button type="submit">Guardar CV</button>
+          <button type="submit">${esEditar ? 'Guardar cambios' : 'Guardar CV'}</button>
           <button type="button" id="cancelarCVBtn" class="secondary-btn">Cancelar</button>
         </div>
       </form>
 
-      <div id="nuevoCVMsg" class="message"></div>
+      <div id="cvMsg" class="message"></div>
     </div>
   `;
 }
@@ -242,7 +262,10 @@ function getListadoCVHTML(cvs = []) {
       <td>${cv.prioridad ? 'Sí' : 'No'}</td>
       <td>${cv.estado || ''}</td>
       <td>
-        <button class="secondary-btn verCVBtn" data-id="${cv.id}">Ver CV</button>
+        <div class="table-actions">
+          <button class="secondary-btn verCVBtn" data-id="${cv.id}">Ver CV</button>
+          <button class="secondary-btn editarCVBtn" data-id="${cv.id}">Editar</button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -314,12 +337,41 @@ function getFichaCVHTML(cv) {
 
       <div class="top-actions" style="margin-top:16px;">
         <button id="volverBolsaBtn" class="secondary-btn">⬅ Volver</button>
+        <button id="editarDesdeFichaCVBtn">✏️ Editar CV</button>
       </div>
     </div>
   `;
 }
 
-export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo', ofertaEditar = null, mostrarCV = false) {
+function obtenerPayloadCV() {
+  const experiencia = limpiarLista([1,2,3].map(i => ({
+    empresa: document.getElementById(`exp_empresa_${i}`).value.trim(),
+    puesto: document.getElementById(`exp_puesto_${i}`).value.trim(),
+    inicio: document.getElementById(`exp_inicio_${i}`).value,
+    fin: document.getElementById(`exp_fin_${i}`).value
+  })));
+
+  const estudios = limpiarLista([1,2,3].map(i => ({
+    titulo: document.getElementById(`est_titulo_${i}`).value.trim(),
+    centro: document.getElementById(`est_centro_${i}`).value.trim(),
+    inicio: document.getElementById(`est_inicio_${i}`).value,
+    fin: document.getElementById(`est_fin_${i}`).value
+  })));
+
+  return {
+    nombre: document.getElementById('cv_nombre').value.trim(),
+    email: document.getElementById('cv_email').value.trim(),
+    telefono: document.getElementById('cv_telefono').value.trim() || null,
+    poblacion: document.getElementById('cv_poblacion').value.trim() || null,
+    carta_presentacion: document.getElementById('cv_carta').value.trim() || null,
+    prioridad: document.getElementById('cv_prioridad').value === 'true',
+    estado: document.getElementById('cv_estado')?.value || 'activo',
+    experiencia,
+    estudios
+  };
+}
+
+export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo', ofertaEditar = null, mostrarCV = false, modoCV = 'nuevo', cvEditar = null) {
   setView('Bolsa de Trabajo', '<p class="loading">Cargando Bolsa de Trabajo...</p>');
 
   const { data: ofertas, error: errorOfertas } = await supabase
@@ -345,7 +397,7 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
   }
 
   const ofertaFormHTML = mostrarOferta ? getOfertaFormHTML(modoOferta, ofertaEditar || {}) : '';
-  const cvFormHTML = mostrarCV ? getNuevoCVFormHTML() : '';
+  const cvFormHTML = mostrarCV ? getCVFormHTML(modoCV, cvEditar || {}) : '';
 
   setView('Bolsa de Trabajo', `
     <div class="asociado-header">
@@ -365,19 +417,19 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
   `);
 
   document.getElementById('nuevaOfertaBtn')?.addEventListener('click', () => {
-    renderBolsaView(true, 'nuevo', null, false);
+    renderBolsaView(true, 'nuevo', null, false, 'nuevo', null);
   });
 
   document.getElementById('nuevoCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, true);
+    renderBolsaView(false, 'nuevo', null, true, 'nuevo', null);
   });
 
   document.getElementById('cancelarOfertaBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
   });
 
   document.getElementById('cancelarCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
   });
 
   const ofertaForm = document.getElementById('ofertaForm');
@@ -418,65 +470,43 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
       msg.textContent = 'Oferta guardada correctamente';
       msg.className = 'message success';
 
-      setTimeout(() => renderBolsaView(false, 'nuevo', null, false), 600);
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null), 600);
     });
   }
 
-  const formCV = document.getElementById('nuevoCVForm');
-  if (formCV) {
-    formCV.onsubmit = async (e) => {
+  const cvForm = document.getElementById('cvForm');
+  if (cvForm) {
+    cvForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const msg = document.getElementById('nuevoCVMsg');
-      msg.textContent = 'Guardando CV...';
+      const msg = document.getElementById('cvMsg');
+      msg.textContent = modoCV === 'editar' ? 'Guardando cambios...' : 'Guardando CV...';
       msg.className = 'message';
 
-      const experiencia = limpiarLista([1,2,3].map(i => ({
-        empresa: document.getElementById(`exp_empresa_${i}`).value.trim(),
-        puesto: document.getElementById(`exp_puesto_${i}`).value.trim(),
-        inicio: document.getElementById(`exp_inicio_${i}`).value,
-        fin: document.getElementById(`exp_fin_${i}`).value
-      })));
+      const payload = obtenerPayloadCV();
 
-      const estudios = limpiarLista([1,2,3].map(i => ({
-        titulo: document.getElementById(`est_titulo_${i}`).value.trim(),
-        centro: document.getElementById(`est_centro_${i}`).value.trim(),
-        inicio: document.getElementById(`est_inicio_${i}`).value,
-        fin: document.getElementById(`est_fin_${i}`).value
-      })));
+      const response = modoCV === 'editar' && cvEditar?.id
+        ? await supabase.from('cvs').update(payload).eq('id', cvEditar.id)
+        : await supabase.from('cvs').insert([payload]);
 
-      const payload = {
-        nombre: document.getElementById('cv_nombre').value.trim(),
-        email: document.getElementById('cv_email').value.trim(),
-        telefono: document.getElementById('cv_telefono').value.trim() || null,
-        poblacion: document.getElementById('cv_poblacion').value.trim() || null,
-        carta_presentacion: document.getElementById('cv_carta').value.trim() || null,
-        prioridad: document.getElementById('cv_prioridad').value === 'true',
-        experiencia,
-        estudios,
-        estado: 'activo'
-      };
-
-      const { error } = await supabase.from('cvs').insert([payload]);
-
-      if (error) {
-        msg.textContent = 'Error al guardar CV: ' + error.message;
+      if (response.error) {
+        msg.textContent = 'Error al guardar CV: ' + response.error.message;
         msg.className = 'message error';
         return;
       }
 
-      msg.textContent = 'CV guardado correctamente';
+      msg.textContent = modoCV === 'editar' ? 'CV actualizado correctamente' : 'CV guardado correctamente';
       msg.className = 'message success';
 
-      setTimeout(() => renderBolsaView(false, 'nuevo', null, false), 600);
-    };
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null), 600);
+    });
   }
 
   document.querySelectorAll('.editarOfertaBtn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = Number(btn.dataset.id);
       const oferta = (ofertas || []).find(item => item.id === id);
-      renderBolsaView(true, 'editar', oferta, false);
+      renderBolsaView(true, 'editar', oferta, false, 'nuevo', null);
     });
   });
 
@@ -496,7 +526,7 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
         return;
       }
 
-      renderBolsaView(false, 'nuevo', null, false);
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
     });
   });
 
@@ -504,6 +534,14 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
       await renderFichaCV(id);
+    });
+  });
+
+  document.querySelectorAll('.editarCVBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      const cv = (cvs || []).find(item => item.id === id);
+      renderBolsaView(false, 'nuevo', null, true, 'editar', cv);
     });
   });
 }
@@ -525,6 +563,10 @@ async function renderFichaCV(id) {
   setView('Ficha CV', getFichaCVHTML(cv));
 
   document.getElementById('volverBolsaBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+  });
+
+  document.getElementById('editarDesdeFichaCVBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, true, 'editar', cv);
   });
 }
