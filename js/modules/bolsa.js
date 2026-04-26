@@ -219,6 +219,7 @@ function getListadoOfertasHTML(ofertas = []) {
           <button class="secondary-btn toggleOfertaBtn" data-id="${oferta.id}" data-estado="${oferta.estado}">
             ${oferta.estado === 'cerrada' ? 'Reabrir' : 'Cerrar'}
           </button>
+          <button class="danger-btn eliminarOfertaBtn" data-id="${oferta.id}">Eliminar</button>
         </div>
       </td>
     </tr>
@@ -265,6 +266,10 @@ function getListadoCVHTML(cvs = []) {
         <div class="table-actions">
           <button class="secondary-btn verCVBtn" data-id="${cv.id}">Ver CV</button>
           <button class="secondary-btn editarCVBtn" data-id="${cv.id}">Editar</button>
+          <button class="secondary-btn toggleCVBtn" data-id="${cv.id}" data-estado="${cv.estado}">
+            ${cv.estado === 'inactivo' ? 'Activar' : 'Desactivar'}
+          </button>
+          <button class="danger-btn eliminarCVBtn" data-id="${cv.id}">Eliminar</button>
         </div>
       </td>
     </tr>
@@ -371,12 +376,38 @@ function obtenerPayloadCV() {
   };
 }
 
-export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo', ofertaEditar = null, mostrarCV = false, modoCV = 'nuevo', cvEditar = null) {
+function obtenerPayloadOferta() {
+  return {
+    titulo: document.getElementById('oferta_titulo').value.trim(),
+    empresa_busca: document.getElementById('oferta_empresa_busca').value.trim() || null,
+    trabajo_realizar: document.getElementById('oferta_trabajo_realizar').value.trim() || null,
+    perfil_busca: document.getElementById('oferta_perfil_busca').value.trim() || null,
+    condiciones: document.getElementById('oferta_condiciones').value.trim() || null,
+    horario: document.getElementById('oferta_horario').value.trim() || null,
+    dias: document.getElementById('oferta_dias').value.trim() || null,
+    sueldo: document.getElementById('oferta_sueldo').value.trim() || null,
+    fecha_inicio: document.getElementById('oferta_fecha_inicio').value.trim() || null,
+    fecha_fin: document.getElementById('oferta_fecha_fin').value.trim() || null,
+    descripcion: document.getElementById('oferta_descripcion').value.trim() || null,
+    estado: document.getElementById('oferta_estado').value,
+    prioridad: document.getElementById('oferta_prioridad').value === 'true'
+  };
+}
+
+export async function renderBolsaView(
+  mostrarOferta = false,
+  modoOferta = 'nuevo',
+  ofertaEditar = null,
+  mostrarCV = false,
+  modoCV = 'nuevo',
+  cvEditar = null
+) {
   setView('Bolsa de Trabajo', '<p class="loading">Cargando Bolsa de Trabajo...</p>');
 
   const { data: ofertas, error: errorOfertas } = await supabase
     .from('ofertas_empleo')
     .select('*')
+    .neq('estado', 'eliminada')
     .order('prioridad', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -388,6 +419,7 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
   const { data: cvs, error: errorCvs } = await supabase
     .from('cvs')
     .select('*')
+    .neq('estado', 'eliminado')
     .order('prioridad', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -441,21 +473,7 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
       msg.textContent = modoOferta === 'editar' ? 'Guardando cambios...' : 'Guardando oferta...';
       msg.className = 'message';
 
-      const payload = {
-        titulo: document.getElementById('oferta_titulo').value.trim(),
-        empresa_busca: document.getElementById('oferta_empresa_busca').value.trim() || null,
-        trabajo_realizar: document.getElementById('oferta_trabajo_realizar').value.trim() || null,
-        perfil_busca: document.getElementById('oferta_perfil_busca').value.trim() || null,
-        condiciones: document.getElementById('oferta_condiciones').value.trim() || null,
-        horario: document.getElementById('oferta_horario').value.trim() || null,
-        dias: document.getElementById('oferta_dias').value.trim() || null,
-        sueldo: document.getElementById('oferta_sueldo').value.trim() || null,
-        fecha_inicio: document.getElementById('oferta_fecha_inicio').value.trim() || null,
-        fecha_fin: document.getElementById('oferta_fecha_fin').value.trim() || null,
-        descripcion: document.getElementById('oferta_descripcion').value.trim() || null,
-        estado: document.getElementById('oferta_estado').value,
-        prioridad: document.getElementById('oferta_prioridad').value === 'true'
-      };
+      const payload = obtenerPayloadOferta();
 
       const response = modoOferta === 'editar' && ofertaEditar?.id
         ? await supabase.from('ofertas_empleo').update(payload).eq('id', ofertaEditar.id)
@@ -530,6 +548,26 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
     });
   });
 
+  document.querySelectorAll('.eliminarOfertaBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const ok = confirm('¿Seguro que quieres eliminar esta oferta? No se borrará definitivamente, solo se ocultará.');
+      if (!ok) return;
+
+      const { error } = await supabase
+        .from('ofertas_empleo')
+        .update({ estado: 'eliminada' })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al eliminar oferta: ' + error.message);
+        return;
+      }
+
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+    });
+  });
+
   document.querySelectorAll('.verCVBtn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
@@ -542,6 +580,46 @@ export async function renderBolsaView(mostrarOferta = false, modoOferta = 'nuevo
       const id = Number(btn.dataset.id);
       const cv = (cvs || []).find(item => item.id === id);
       renderBolsaView(false, 'nuevo', null, true, 'editar', cv);
+    });
+  });
+
+  document.querySelectorAll('.toggleCVBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const estadoActual = btn.dataset.estado;
+      const nuevoEstado = estadoActual === 'inactivo' ? 'activo' : 'inactivo';
+
+      const { error } = await supabase
+        .from('cvs')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al cambiar estado del CV: ' + error.message);
+        return;
+      }
+
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+    });
+  });
+
+  document.querySelectorAll('.eliminarCVBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const ok = confirm('¿Seguro que quieres eliminar este CV? No se borrará definitivamente, solo se ocultará.');
+      if (!ok) return;
+
+      const { error } = await supabase
+        .from('cvs')
+        .update({ estado: 'eliminado' })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al eliminar CV: ' + error.message);
+        return;
+      }
+
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
     });
   });
 }
