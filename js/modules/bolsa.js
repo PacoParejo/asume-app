@@ -202,6 +202,49 @@ function getCVFormHTML(modo = 'nuevo', cv = {}) {
   `;
 }
 
+function getSolicitudFormHTML(oferta, cvs = []) {
+  const opcionesCV = (cvs || []).map(cv => `
+    <option value="${cv.id}">
+      ${cv.nombre || 'Sin nombre'} ${cv.email ? `(${cv.email})` : ''}
+    </option>
+  `).join('');
+
+  return `
+    <div class="form-card">
+      <h3>Solicitar empleo</h3>
+
+      <p><strong>Oferta:</strong> ${oferta.titulo || ''}</p>
+      <p><strong>Empresa:</strong> ${oferta.empresa_busca || '-'}</p>
+
+      <form id="solicitudForm">
+        <input type="hidden" id="sol_oferta_id" value="${oferta.id}" />
+
+        <div class="form-grid">
+          <div class="full-width">
+            <label>Selecciona CV *</label>
+            <select id="sol_cv_id" required>
+              <option value="">Selecciona un CV</option>
+              ${opcionesCV}
+            </select>
+          </div>
+
+          <div class="full-width">
+            <label>Mensaje opcional</label>
+            <textarea id="sol_mensaje" rows="4"></textarea>
+          </div>
+        </div>
+
+        <div class="top-actions" style="margin-top:16px;">
+          <button type="submit">Enviar solicitud</button>
+          <button type="button" id="cancelarSolicitudBtn" class="secondary-btn">Cancelar</button>
+        </div>
+      </form>
+
+      <div id="solicitudMsg" class="message"></div>
+    </div>
+  `;
+}
+
 function getListadoOfertasHTML(ofertas = []) {
   const rows = (ofertas || []).map(oferta => `
     <tr>
@@ -215,6 +258,7 @@ function getListadoOfertasHTML(ofertas = []) {
       <td>${oferta.estado || ''}</td>
       <td>
         <div class="table-actions">
+          <button class="secondary-btn solicitarOfertaBtn" data-id="${oferta.id}">Solicitar</button>
           <button class="secondary-btn editarOfertaBtn" data-id="${oferta.id}">Editar</button>
           <button class="secondary-btn toggleOfertaBtn" data-id="${oferta.id}" data-estado="${oferta.estado}">
             ${oferta.estado === 'cerrada' ? 'Reabrir' : 'Cerrar'}
@@ -294,6 +338,52 @@ function getListadoCVHTML(cvs = []) {
           </thead>
           <tbody>
             ${rows || '<tr><td colspan="8">No hay CV registrados todavía.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function getListadoSolicitudesHTML(solicitudes = []) {
+  const rows = (solicitudes || []).map(sol => `
+    <tr>
+      <td>${sol.id}</td>
+      <td>${sol.ofertas_empleo?.titulo || ''}</td>
+      <td>${sol.cvs?.nombre || ''}</td>
+      <td>${sol.cvs?.email || ''}</td>
+      <td>${sol.estado || ''}</td>
+      <td>${sol.mensaje || ''}</td>
+      <td>${sol.created_at ? new Date(sol.created_at).toLocaleString('es-ES') : ''}</td>
+      <td>
+        <div class="table-actions">
+          <button class="secondary-btn estadoSolicitudBtn" data-id="${sol.id}" data-estado="aceptada">Aceptar</button>
+          <button class="secondary-btn estadoSolicitudBtn" data-id="${sol.id}" data-estado="rechazada">Rechazar</button>
+          <button class="secondary-btn estadoSolicitudBtn" data-id="${sol.id}" data-estado="pendiente">Pendiente</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="form-card">
+      <h3>Solicitudes recibidas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Oferta</th>
+              <th>Candidato</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th>Mensaje</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="8">No hay solicitudes todavía.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -448,7 +538,9 @@ export async function renderBolsaView(
   ofertaEditar = null,
   mostrarCV = false,
   modoCV = 'nuevo',
-  cvEditar = null
+  cvEditar = null,
+  mostrarSolicitud = false,
+  ofertaSolicitud = null
 ) {
   setView('Bolsa de Trabajo', '<p class="loading">Cargando Bolsa de Trabajo...</p>');
 
@@ -476,8 +568,33 @@ export async function renderBolsaView(
     return;
   }
 
+  const { data: solicitudes, error: errorSolicitudes } = await supabase
+    .from('solicitudes_empleo')
+    .select(`
+      id,
+      estado,
+      mensaje,
+      created_at,
+      ofertas_empleo (
+        id,
+        titulo
+      ),
+      cvs (
+        id,
+        nombre,
+        email
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (errorSolicitudes) {
+    setView('Bolsa de Trabajo', `<p class="error">Error al cargar solicitudes: ${errorSolicitudes.message}</p>`);
+    return;
+  }
+
   const ofertaFormHTML = mostrarOferta ? getOfertaFormHTML(modoOferta, ofertaEditar || {}) : '';
   const cvFormHTML = mostrarCV ? getCVFormHTML(modoCV, cvEditar || {}) : '';
+  const solicitudFormHTML = mostrarSolicitud ? getSolicitudFormHTML(ofertaSolicitud || {}, cvs || []) : '';
 
   setView('Bolsa de Trabajo', `
     <div class="asociado-header">
@@ -493,16 +610,18 @@ export async function renderBolsaView(
 
     ${ofertaFormHTML}
     ${cvFormHTML}
+    ${solicitudFormHTML}
     ${getListadoOfertasHTML(ofertas || [])}
     ${getListadoCVHTML(cvs || [])}
+    ${getListadoSolicitudesHTML(solicitudes || [])}
   `);
 
   document.getElementById('nuevaOfertaBtn')?.addEventListener('click', () => {
-    renderBolsaView(true, 'nuevo', null, false, 'nuevo', null);
+    renderBolsaView(true, 'nuevo', null, false, 'nuevo', null, false, null);
   });
 
   document.getElementById('nuevoCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, true, 'nuevo', null);
+    renderBolsaView(false, 'nuevo', null, true, 'nuevo', null, false, null);
   });
 
   document.getElementById('papeleraBolsaBtn')?.addEventListener('click', () => {
@@ -510,11 +629,15 @@ export async function renderBolsaView(
   });
 
   document.getElementById('cancelarOfertaBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
   });
 
   document.getElementById('cancelarCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
+  });
+
+  document.getElementById('cancelarSolicitudBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
   });
 
   const ofertaForm = document.getElementById('ofertaForm');
@@ -541,7 +664,7 @@ export async function renderBolsaView(
       msg.textContent = 'Oferta guardada correctamente';
       msg.className = 'message success';
 
-      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null), 600);
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null), 600);
     });
   }
 
@@ -569,15 +692,56 @@ export async function renderBolsaView(
       msg.textContent = modoCV === 'editar' ? 'CV actualizado correctamente' : 'CV guardado correctamente';
       msg.className = 'message success';
 
-      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null), 600);
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null), 600);
     });
   }
+
+  const solicitudForm = document.getElementById('solicitudForm');
+  if (solicitudForm) {
+    solicitudForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const msg = document.getElementById('solicitudMsg');
+      msg.textContent = 'Enviando solicitud...';
+      msg.className = 'message';
+
+      const payload = {
+        oferta_id: Number(document.getElementById('sol_oferta_id').value),
+        cv_id: Number(document.getElementById('sol_cv_id').value),
+        mensaje: document.getElementById('sol_mensaje').value.trim() || null,
+        estado: 'pendiente'
+      };
+
+      const { error } = await supabase
+        .from('solicitudes_empleo')
+        .insert([payload]);
+
+      if (error) {
+        msg.textContent = 'Error al enviar solicitud: ' + error.message;
+        msg.className = 'message error';
+        return;
+      }
+
+      msg.textContent = 'Solicitud enviada correctamente';
+      msg.className = 'message success';
+
+      setTimeout(() => renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null), 800);
+    });
+  }
+
+  document.querySelectorAll('.solicitarOfertaBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      const oferta = (ofertas || []).find(item => item.id === id);
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, true, oferta);
+    });
+  });
 
   document.querySelectorAll('.editarOfertaBtn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = Number(btn.dataset.id);
       const oferta = (ofertas || []).find(item => item.id === id);
-      renderBolsaView(true, 'editar', oferta, false, 'nuevo', null);
+      renderBolsaView(true, 'editar', oferta, false, 'nuevo', null, false, null);
     });
   });
 
@@ -597,7 +761,7 @@ export async function renderBolsaView(
         return;
       }
 
-      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
     });
   });
 
@@ -617,7 +781,7 @@ export async function renderBolsaView(
         return;
       }
 
-      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
     });
   });
 
@@ -632,7 +796,7 @@ export async function renderBolsaView(
     btn.addEventListener('click', () => {
       const id = Number(btn.dataset.id);
       const cv = (cvs || []).find(item => item.id === id);
-      renderBolsaView(false, 'nuevo', null, true, 'editar', cv);
+      renderBolsaView(false, 'nuevo', null, true, 'editar', cv, false, null);
     });
   });
 
@@ -652,7 +816,7 @@ export async function renderBolsaView(
         return;
       }
 
-      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
     });
   });
 
@@ -672,7 +836,26 @@ export async function renderBolsaView(
         return;
       }
 
-      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
+    });
+  });
+
+  document.querySelectorAll('.estadoSolicitudBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const nuevoEstado = btn.dataset.estado;
+
+      const { error } = await supabase
+        .from('solicitudes_empleo')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al cambiar estado de solicitud: ' + error.message);
+        return;
+      }
+
+      renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
     });
   });
 }
@@ -694,11 +877,11 @@ async function renderFichaCV(id) {
   setView('Ficha CV', getFichaCVHTML(cv));
 
   document.getElementById('volverBolsaBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
   });
 
   document.getElementById('editarDesdeFichaCVBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, true, 'editar', cv);
+    renderBolsaView(false, 'nuevo', null, true, 'editar', cv, false, null);
   });
 }
 
@@ -741,7 +924,7 @@ async function renderPapeleraBolsa() {
   `);
 
   document.getElementById('volverBolsaBtn')?.addEventListener('click', () => {
-    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null);
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
   });
 
   document.querySelectorAll('.restaurarOfertaBtn').forEach(btn => {
