@@ -651,6 +651,9 @@ export async function renderBolsaView(
 
       const payload = obtenerPayloadOferta();
 
+      const { data: userData } = await supabase.auth.getUser();
+      payload.user_id = userData?.user?.id || null;
+
       const response = modoOferta === 'editar' && ofertaEditar?.id
         ? await supabase.from('ofertas_empleo').update(payload).eq('id', ofertaEditar.id)
         : await supabase.from('ofertas_empleo').insert([payload]);
