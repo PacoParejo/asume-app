@@ -259,6 +259,7 @@ function getListadoOfertasHTML(ofertas = []) {
       <td>
         <div class="table-actions">
           <button class="secondary-btn solicitarOfertaBtn" data-id="${oferta.id}">Solicitar</button>
+          <button class="secondary-btn candidatosOfertaBtn" data-id="${oferta.id}">👥 Candidatos</button>
           <button class="secondary-btn editarOfertaBtn" data-id="${oferta.id}">Editar</button>
           <button class="secondary-btn toggleOfertaBtn" data-id="${oferta.id}" data-estado="${oferta.estado}">
             ${oferta.estado === 'cerrada' ? 'Reabrir' : 'Cerrar'}
@@ -740,6 +741,14 @@ export async function renderBolsaView(
     });
   });
 
+  document.querySelectorAll('.candidatosOfertaBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const oferta = (ofertas || []).find(item => item.id === id);
+      await renderCandidatosOferta(id, oferta);
+    });
+  });
+
   document.querySelectorAll('.editarOfertaBtn').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = Number(btn.dataset.id);
@@ -859,6 +868,118 @@ export async function renderBolsaView(
       }
 
       renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
+    });
+  });
+}
+
+async function renderCandidatosOferta(ofertaId, oferta = null) {
+  setView('Candidatos de la oferta', '<p class="loading">Cargando candidatos...</p>');
+
+  const { data: solicitudes, error } = await supabase
+    .from('solicitudes_empleo')
+    .select(`
+      id,
+      estado,
+      mensaje,
+      created_at,
+      cvs (
+        id,
+        nombre,
+        email,
+        telefono,
+        poblacion
+      )
+    `)
+    .eq('oferta_id', ofertaId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    setView('Candidatos de la oferta', `<p class="error">Error al cargar candidatos: ${error.message}</p>`);
+    return;
+  }
+
+  const rows = (solicitudes || []).map(sol => `
+    <tr>
+      <td>${sol.cvs?.nombre || ''}</td>
+      <td>${sol.cvs?.email || ''}</td>
+      <td>${sol.cvs?.telefono || ''}</td>
+      <td>${sol.cvs?.poblacion || ''}</td>
+      <td>${sol.estado || ''}</td>
+      <td>${sol.mensaje || ''}</td>
+      <td>${sol.created_at ? new Date(sol.created_at).toLocaleString('es-ES') : ''}</td>
+      <td>
+        <div class="table-actions">
+          <button class="secondary-btn verCandidatoCVBtn" data-id="${sol.cvs?.id}">Ver CV</button>
+          <button class="secondary-btn estadoCandidatoBtn" data-id="${sol.id}" data-estado="aceptada">Aceptar</button>
+          <button class="secondary-btn estadoCandidatoBtn" data-id="${sol.id}" data-estado="rechazada">Rechazar</button>
+          <button class="secondary-btn estadoCandidatoBtn" data-id="${sol.id}" data-estado="pendiente">Pendiente</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  setView('Candidatos de la oferta', `
+    <div class="asociado-header">
+      <div>
+        <h3>👥 Candidatos de esta oferta</h3>
+        <p style="margin:0;"><strong>Oferta:</strong> ${oferta?.titulo || ofertaId}</p>
+        <p style="margin:4px 0 0 0;"><strong>Empresa:</strong> ${oferta?.empresa_busca || '-'}</p>
+      </div>
+      <div class="table-actions">
+        <button id="volverBolsaBtn" class="secondary-btn">⬅ Volver</button>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Población</th>
+              <th>Estado</th>
+              <th>Mensaje</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="8">Esta oferta todavía no tiene candidatos.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+
+  document.getElementById('volverBolsaBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, false, 'nuevo', null, false, null);
+  });
+
+  document.querySelectorAll('.verCandidatoCVBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      await renderFichaCV(id);
+    });
+  });
+
+  document.querySelectorAll('.estadoCandidatoBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      const nuevoEstado = btn.dataset.estado;
+
+      const { error } = await supabase
+        .from('solicitudes_empleo')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      if (error) {
+        alert('Error al cambiar estado: ' + error.message);
+        return;
+      }
+
+      await renderCandidatosOferta(ofertaId, oferta);
     });
   });
 }
