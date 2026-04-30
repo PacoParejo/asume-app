@@ -203,7 +203,10 @@ function getCVFormHTML(modo = 'nuevo', cv = {}) {
 }
 
 function getSolicitudFormHTML(oferta, cvs = []) {
-  const opcionesCV = (cvs || []).map(cv => `
+  const cvsDisponibles = cvs || [];
+  const hayCV = cvsDisponibles.length > 0;
+
+  const opcionesCV = cvsDisponibles.map(cv => `
     <option value="${cv.id}">
       ${cv.nombre || 'Sin nombre'} ${cv.email ? `(${cv.email})` : ''}
     </option>
@@ -213,34 +216,58 @@ function getSolicitudFormHTML(oferta, cvs = []) {
     <div class="form-card">
       <h3>Solicitar empleo</h3>
 
+      <div class="helper" style="margin-bottom:16px;">
+        <p><strong>Antes de solicitar esta oferta necesitas tener un CV creado en la Bolsa de Trabajo.</strong></p>
+        <p>
+          Si todavía no lo has creado, pulsa <strong>“Crear CV primero”</strong> y completa tus datos básicos,
+          experiencia, estudios y carta de presentación.
+        </p>
+        <p>
+          Cuando lo tengas, vuelve a esta oferta, selecciona tu CV y envía la solicitud.
+          La empresa podrá ver tu CV y contactar contigo si encajas con el perfil.
+        </p>
+      </div>
+
       <p><strong>Oferta:</strong> ${oferta.titulo || ''}</p>
       <p><strong>Empresa:</strong> ${oferta.empresa_busca || '-'}</p>
 
-      <form id="solicitudForm">
-        <input type="hidden" id="sol_oferta_id" value="${oferta.id}" />
-
-        <div class="form-grid">
-          <div class="full-width">
-            <label>Selecciona CV *</label>
-            <select id="sol_cv_id" required>
-              <option value="">Selecciona un CV</option>
-              ${opcionesCV}
-            </select>
-          </div>
-
-          <div class="full-width">
-            <label>Mensaje opcional</label>
-            <textarea id="sol_mensaje" rows="4"></textarea>
-          </div>
+      ${!hayCV ? `
+        <div class="message error" style="margin-top:16px;">
+          Aún no hay ningún CV disponible. Crea primero un CV para poder solicitar esta oferta.
         </div>
 
         <div class="top-actions" style="margin-top:16px;">
-          <button type="submit">Enviar solicitud</button>
+          <button type="button" id="crearCVDesdeSolicitudBtn">📄 Crear CV primero</button>
           <button type="button" id="cancelarSolicitudBtn" class="secondary-btn">Cancelar</button>
         </div>
-      </form>
+      ` : `
+        <form id="solicitudForm">
+          <input type="hidden" id="sol_oferta_id" value="${oferta.id}" />
 
-      <div id="solicitudMsg" class="message"></div>
+          <div class="form-grid">
+            <div class="full-width">
+              <label>Selecciona CV *</label>
+              <select id="sol_cv_id" required>
+                <option value="">Selecciona un CV</option>
+                ${opcionesCV}
+              </select>
+            </div>
+
+            <div class="full-width">
+              <label>Mensaje opcional para la empresa</label>
+              <textarea id="sol_mensaje" rows="4" placeholder="Puedes añadir disponibilidad, interés por el puesto o cualquier detalle que ayude a la empresa."></textarea>
+            </div>
+          </div>
+
+          <div class="top-actions" style="margin-top:16px;">
+            <button type="submit">Enviar solicitud</button>
+            <button type="button" id="crearCVDesdeSolicitudBtn" class="secondary-btn">📄 Crear CV primero</button>
+            <button type="button" id="cancelarSolicitudBtn" class="secondary-btn">Cancelar</button>
+          </div>
+        </form>
+
+        <div id="solicitudMsg" class="message"></div>
+      `}
     </div>
   `;
 }
@@ -627,6 +654,10 @@ export async function renderBolsaView(
 
   document.getElementById('papeleraBolsaBtn')?.addEventListener('click', () => {
     renderPapeleraBolsa();
+  });
+
+  document.getElementById('crearCVDesdeSolicitudBtn')?.addEventListener('click', () => {
+    renderBolsaView(false, 'nuevo', null, true, 'nuevo', null, false, null);
   });
 
   document.getElementById('cancelarOfertaBtn')?.addEventListener('click', () => {
