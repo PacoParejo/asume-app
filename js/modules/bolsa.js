@@ -3,7 +3,6 @@ import { supabase } from '../supabase.js';
 function setView(title, html) {
   const viewTitle = document.getElementById('viewTitle');
   const viewContent = document.getElementById('viewContent');
-
   if (viewTitle) viewTitle.textContent = title;
   if (viewContent) viewContent.innerHTML = html;
 }
@@ -16,6 +15,24 @@ function limpiarLista(lista = []) {
   return (lista || []).filter(item =>
     Object.values(item || {}).some(valor => valor && valor.toString().trim() !== '')
   );
+}
+
+async function getCurrentUserAndRole() {
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user || null;
+
+  if (!user) return { user: null, role: 'publico' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  return {
+    user,
+    role: profile?.role || 'asociado'
+  };
 }
 
 function getOfertaFormHTML(modo = 'nuevo', oferta = {}) {
@@ -216,16 +233,10 @@ function getSolicitudFormHTML(oferta, cvs = []) {
     <div class="form-card">
       <h3>Solicitar empleo</h3>
 
-      <div class="helper" style="margin-bottom:16px;">
-        <p><strong>Antes de solicitar esta oferta necesitas tener un CV creado en la Bolsa de Trabajo.</strong></p>
-        <p>
-          Si todavía no lo has creado, pulsa <strong>“Crear CV primero”</strong> y completa tus datos básicos,
-          experiencia, estudios y carta de presentación.
-        </p>
-        <p>
-          Cuando lo tengas, vuelve a esta oferta, selecciona tu CV y envía la solicitud.
-          La empresa podrá ver tu CV y contactar contigo si encajas con el perfil.
-        </p>
+      <div class="message" style="margin-bottom:16px;">
+        <p><strong>Para solicitar esta oferta necesitas tener un CV creado en la Bolsa de Trabajo.</strong></p>
+        <p>Si todavía no lo has creado, pulsa <strong>“Crear CV primero”</strong> y completa tus datos, experiencia, estudios y carta de presentación.</p>
+        <p>Después vuelve a la oferta, selecciona tu CV y envía la solicitud. La empresa podrá ver tu CV y contactar contigo si encajas con el perfil.</p>
       </div>
 
       <p><strong>Oferta:</strong> ${oferta.titulo || ''}</p>
@@ -233,7 +244,7 @@ function getSolicitudFormHTML(oferta, cvs = []) {
 
       ${!hayCV ? `
         <div class="message error" style="margin-top:16px;">
-          Aún no hay ningún CV disponible. Crea primero un CV para poder solicitar esta oferta.
+          No tienes ningún CV creado todavía.
         </div>
 
         <div class="top-actions" style="margin-top:16px;">
@@ -255,7 +266,7 @@ function getSolicitudFormHTML(oferta, cvs = []) {
 
             <div class="full-width">
               <label>Mensaje opcional para la empresa</label>
-              <textarea id="sol_mensaje" rows="4" placeholder="Puedes añadir disponibilidad, interés por el puesto o cualquier detalle que ayude a la empresa."></textarea>
+              <textarea id="sol_mensaje" rows="4" placeholder="Disponibilidad, interés por el puesto o cualquier detalle útil."></textarea>
             </div>
           </div>
 
@@ -278,10 +289,6 @@ function getListadoOfertasHTML(ofertas = []) {
       <td>${oferta.id}</td>
       <td>${oferta.titulo || ''}</td>
       <td>${oferta.empresa_busca || ''}</td>
-      <td>${oferta.trabajo_realizar || ''}</td>
-      <td>${oferta.horario || ''}</td>
-      <td>${oferta.sueldo || ''}</td>
-      <td>${oferta.prioridad ? 'Sí' : 'No'}</td>
       <td>${oferta.estado || ''}</td>
       <td>
         <div class="table-actions">
@@ -304,19 +311,15 @@ function getListadoOfertasHTML(ofertas = []) {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th style="width:60px;">ID</th>
               <th>Título</th>
               <th>Empresa</th>
-              <th>Trabajo</th>
-              <th>Horario</th>
-              <th>Sueldo</th>
-              <th>Prioridad</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <th style="width:100px;">Estado</th>
+              <th style="width:260px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="9">No hay ofertas registradas todavía.</td></tr>'}
+            ${rows || '<tr><td colspan="5">No hay ofertas registradas todavía.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -330,13 +333,10 @@ function getListadoCVHTML(cvs = []) {
       <td>${cv.id}</td>
       <td>${cv.nombre || ''}</td>
       <td>${cv.email || ''}</td>
-      <td>${cv.telefono || ''}</td>
-      <td>${cv.poblacion || ''}</td>
-      <td>${cv.prioridad ? 'Sí' : 'No'}</td>
       <td>${cv.estado || ''}</td>
       <td>
         <div class="table-actions">
-          <button class="secondary-btn verCVBtn" data-id="${cv.id}">Ver CV</button>
+          <button class="secondary-btn verCVBtn" data-id="${cv.id}">Ver</button>
           <button class="secondary-btn editarCVBtn" data-id="${cv.id}">Editar</button>
           <button class="secondary-btn toggleCVBtn" data-id="${cv.id}" data-estado="${cv.estado}">
             ${cv.estado === 'inactivo' ? 'Activar' : 'Desactivar'}
@@ -349,23 +349,20 @@ function getListadoCVHTML(cvs = []) {
 
   return `
     <div class="form-card">
-      <h3>Currículum Vitae registrados</h3>
+      <h3>Mis Currículum Vitae</h3>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th style="width:60px;">ID</th>
               <th>Nombre</th>
               <th>Email</th>
-              <th>Teléfono</th>
-              <th>Población</th>
-              <th>Prioridad</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <th style="width:100px;">Estado</th>
+              <th style="width:240px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="8">No hay CV registrados todavía.</td></tr>'}
+            ${rows || '<tr><td colspan="5">No tienes CV registrados todavía.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -376,13 +373,9 @@ function getListadoCVHTML(cvs = []) {
 function getListadoSolicitudesHTML(solicitudes = []) {
   const rows = (solicitudes || []).map(sol => `
     <tr>
-      <td>${sol.id}</td>
       <td>${sol.ofertas_empleo?.titulo || ''}</td>
       <td>${sol.cvs?.nombre || ''}</td>
-      <td>${sol.cvs?.email || ''}</td>
       <td>${sol.estado || ''}</td>
-      <td>${sol.mensaje || ''}</td>
-      <td>${sol.created_at ? new Date(sol.created_at).toLocaleString('es-ES') : ''}</td>
       <td>
         <div class="table-actions">
           <button class="secondary-btn estadoSolicitudBtn" data-id="${sol.id}" data-estado="aceptada">Aceptar</button>
@@ -400,18 +393,14 @@ function getListadoSolicitudesHTML(solicitudes = []) {
         <table>
           <thead>
             <tr>
-              <th>ID</th>
               <th>Oferta</th>
               <th>Candidato</th>
-              <th>Email</th>
-              <th>Estado</th>
-              <th>Mensaje</th>
-              <th>Fecha</th>
-              <th>Acciones</th>
+              <th style="width:100px;">Estado</th>
+              <th style="width:240px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="8">No hay solicitudes todavía.</td></tr>'}
+            ${rows || '<tr><td colspan="4">No hay solicitudes todavía.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -425,10 +414,7 @@ function getPapeleraHTML(ofertas = [], cvs = []) {
       <td>OFERTA</td>
       <td>${oferta.titulo || ''}</td>
       <td>${oferta.empresa_busca || ''}</td>
-      <td>${oferta.estado || ''}</td>
-      <td>
-        <button class="secondary-btn restaurarOfertaBtn" data-id="${oferta.id}">Restaurar</button>
-      </td>
+      <td><button class="secondary-btn restaurarOfertaBtn" data-id="${oferta.id}">Restaurar</button></td>
     </tr>
   `).join('');
 
@@ -437,10 +423,7 @@ function getPapeleraHTML(ofertas = [], cvs = []) {
       <td>CV</td>
       <td>${cv.nombre || ''}</td>
       <td>${cv.email || ''}</td>
-      <td>${cv.estado || ''}</td>
-      <td>
-        <button class="secondary-btn restaurarCVBtn" data-id="${cv.id}">Restaurar</button>
-      </td>
+      <td><button class="secondary-btn restaurarCVBtn" data-id="${cv.id}">Restaurar</button></td>
     </tr>
   `).join('');
 
@@ -454,12 +437,11 @@ function getPapeleraHTML(ofertas = [], cvs = []) {
               <th>Tipo</th>
               <th>Nombre / título</th>
               <th>Empresa / email</th>
-              <th>Estado</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${rowsOfertas + rowsCV || '<tr><td colspan="5">La papelera está vacía.</td></tr>'}
+            ${rowsOfertas + rowsCV || '<tr><td colspan="4">La papelera está vacía.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -572,6 +554,8 @@ export async function renderBolsaView(
 ) {
   setView('Bolsa de Trabajo', '<p class="loading">Cargando Bolsa de Trabajo...</p>');
 
+  const { user, role } = await getCurrentUserAndRole();
+
   const { data: ofertas, error: errorOfertas } = await supabase
     .from('ofertas_empleo')
     .select('*')
@@ -584,12 +568,18 @@ export async function renderBolsaView(
     return;
   }
 
-  const { data: cvs, error: errorCvs } = await supabase
+  let cvsQuery = supabase
     .from('cvs')
     .select('*')
     .neq('estado', 'eliminado')
     .order('prioridad', { ascending: false })
     .order('created_at', { ascending: false });
+
+  if (role !== 'superadmin' && user?.id) {
+    cvsQuery = cvsQuery.eq('user_id', user.id);
+  }
+
+  const { data: cvs, error: errorCvs } = await cvsQuery;
 
   if (errorCvs) {
     setView('Bolsa de Trabajo', `<p class="error">Error al cargar CV: ${errorCvs.message}</p>`);
@@ -652,12 +642,12 @@ export async function renderBolsaView(
     renderBolsaView(false, 'nuevo', null, true, 'nuevo', null, false, null);
   });
 
-  document.getElementById('papeleraBolsaBtn')?.addEventListener('click', () => {
-    renderPapeleraBolsa();
-  });
-
   document.getElementById('crearCVDesdeSolicitudBtn')?.addEventListener('click', () => {
     renderBolsaView(false, 'nuevo', null, true, 'nuevo', null, false, null);
+  });
+
+  document.getElementById('papeleraBolsaBtn')?.addEventListener('click', () => {
+    renderPapeleraBolsa();
   });
 
   document.getElementById('cancelarOfertaBtn')?.addEventListener('click', () => {
@@ -682,9 +672,7 @@ export async function renderBolsaView(
       msg.className = 'message';
 
       const payload = obtenerPayloadOferta();
-
-      const { data: userData } = await supabase.auth.getUser();
-      payload.user_id = userData?.user?.id || null;
+      payload.user_id = user?.id || null;
 
       const response = modoOferta === 'editar' && ofertaEditar?.id
         ? await supabase.from('ofertas_empleo').update(payload).eq('id', ofertaEditar.id)
@@ -713,6 +701,7 @@ export async function renderBolsaView(
       msg.className = 'message';
 
       const payload = obtenerPayloadCV();
+      payload.user_id = user?.id || null;
 
       const response = modoCV === 'editar' && cvEditar?.id
         ? await supabase.from('cvs').update(payload).eq('id', cvEditar.id)
@@ -830,8 +819,7 @@ export async function renderBolsaView(
 
   document.querySelectorAll('.verCVBtn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-      await renderFichaCV(id);
+      await renderFichaCV(Number(btn.dataset.id));
     });
   });
 
@@ -933,11 +921,7 @@ async function renderCandidatosOferta(ofertaId, oferta = null) {
     <tr>
       <td>${sol.cvs?.nombre || ''}</td>
       <td>${sol.cvs?.email || ''}</td>
-      <td>${sol.cvs?.telefono || ''}</td>
-      <td>${sol.cvs?.poblacion || ''}</td>
       <td>${sol.estado || ''}</td>
-      <td>${sol.mensaje || ''}</td>
-      <td>${sol.created_at ? new Date(sol.created_at).toLocaleString('es-ES') : ''}</td>
       <td>
         <div class="table-actions">
           <button class="secondary-btn verCandidatoCVBtn" data-id="${sol.cvs?.id}">Ver CV</button>
@@ -953,8 +937,8 @@ async function renderCandidatosOferta(ofertaId, oferta = null) {
     <div class="asociado-header">
       <div>
         <h3>👥 Candidatos de esta oferta</h3>
-        <p style="margin:0;"><strong>Oferta:</strong> ${oferta?.titulo || ofertaId}</p>
-        <p style="margin:4px 0 0 0;"><strong>Empresa:</strong> ${oferta?.empresa_busca || '-'}</p>
+        <p><strong>Oferta:</strong> ${oferta?.titulo || ofertaId}</p>
+        <p><strong>Empresa:</strong> ${oferta?.empresa_busca || '-'}</p>
       </div>
       <div class="table-actions">
         <button id="volverBolsaBtn" class="secondary-btn">⬅ Volver</button>
@@ -968,16 +952,12 @@ async function renderCandidatosOferta(ofertaId, oferta = null) {
             <tr>
               <th>Nombre</th>
               <th>Email</th>
-              <th>Teléfono</th>
-              <th>Población</th>
               <th>Estado</th>
-              <th>Mensaje</th>
-              <th>Fecha</th>
-              <th>Acciones</th>
+              <th style="width:260px;">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="8">Esta oferta todavía no tiene candidatos.</td></tr>'}
+            ${rows || '<tr><td colspan="4">Esta oferta todavía no tiene candidatos.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -990,8 +970,7 @@ async function renderCandidatosOferta(ofertaId, oferta = null) {
 
   document.querySelectorAll('.verCandidatoCVBtn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-      await renderFichaCV(id);
+      await renderFichaCV(Number(btn.dataset.id));
     });
   });
 
@@ -1043,6 +1022,8 @@ async function renderFichaCV(id) {
 async function renderPapeleraBolsa() {
   setView('Papelera Bolsa', '<p class="loading">Cargando papelera...</p>');
 
+  const { user, role } = await getCurrentUserAndRole();
+
   const { data: ofertas, error: errorOfertas } = await supabase
     .from('ofertas_empleo')
     .select('*')
@@ -1054,11 +1035,17 @@ async function renderPapeleraBolsa() {
     return;
   }
 
-  const { data: cvs, error: errorCvs } = await supabase
+  let cvsQuery = supabase
     .from('cvs')
     .select('*')
     .eq('estado', 'eliminado')
     .order('created_at', { ascending: false });
+
+  if (role !== 'superadmin' && user?.id) {
+    cvsQuery = cvsQuery.eq('user_id', user.id);
+  }
+
+  const { data: cvs, error: errorCvs } = await cvsQuery;
 
   if (errorCvs) {
     setView('Papelera Bolsa', `<p class="error">Error al cargar CV eliminados: ${errorCvs.message}</p>`);
@@ -1085,8 +1072,7 @@ async function renderPapeleraBolsa() {
   document.querySelectorAll('.restaurarOfertaBtn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
-      const ok = confirm('¿Restaurar esta oferta?');
-      if (!ok) return;
+      if (!confirm('¿Restaurar esta oferta?')) return;
 
       const { error } = await supabase
         .from('ofertas_empleo')
@@ -1105,8 +1091,7 @@ async function renderPapeleraBolsa() {
   document.querySelectorAll('.restaurarCVBtn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
-      const ok = confirm('¿Restaurar este CV?');
-      if (!ok) return;
+      if (!confirm('¿Restaurar este CV?')) return;
 
       const { error } = await supabase
         .from('cvs')
