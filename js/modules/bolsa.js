@@ -586,16 +586,17 @@ export async function renderBolsaView(
     return;
   }
 
-  const { data: solicitudes, error: errorSolicitudes } = await supabase
+  let solicitudesQuery = supabase
     .from('solicitudes_empleo')
     .select(`
       id,
       estado,
       mensaje,
       created_at,
-      ofertas_empleo (
+      ofertas_empleo!inner (
         id,
-        titulo
+        titulo,
+        user_id
       ),
       cvs (
         id,
@@ -604,6 +605,12 @@ export async function renderBolsaView(
       )
     `)
     .order('created_at', { ascending: false });
+
+  if (role !== 'superadmin' && user?.id) {
+    solicitudesQuery = solicitudesQuery.eq('ofertas_empleo.user_id', user.id);
+  }
+
+  const { data: solicitudes, error: errorSolicitudes } = await solicitudesQuery;
 
   if (errorSolicitudes) {
     setView('Bolsa de Trabajo', `<p class="error">Error al cargar solicitudes: ${errorSolicitudes.message}</p>`);
