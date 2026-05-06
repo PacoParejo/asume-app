@@ -7,6 +7,7 @@ import {
 import { renderAsociadosView } from './modules/asociados.js';
 import { renderArchivoView } from './modules/archivo.js';
 import { renderBolsaView } from '/js/modules/bolsa.js';
+import { renderMisDatos } from './modules/mis-datos.js';
 
 // ===============================
 // REFERENCIAS DOM
@@ -70,15 +71,21 @@ function getMenuForRole(role) {
   const menus = {
     superadmin: [
       { key: 'dashboard', label: '🏠 Dashboard' },
+      { key: 'misdatos', label: '👤 Mis datos' },
       { key: 'asociados', label: '🏢 Asociados' },
       { key: 'archivo', label: '🗃️ Archivo' },
       { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
     ],
+
     asociado: [
       { key: 'dashboard', label: '🏠 Dashboard' },
+      { key: 'misdatos', label: '👤 Mis datos' },
       { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
     ]
   };
+
+  return menus[role] || menus.asociado;
+}
 
   return menus[role] || menus.asociado;
 }
