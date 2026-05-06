@@ -4,9 +4,10 @@ import {
   getSession,
   getUserProfile
 } from './supabase.js';
+
 import { renderAsociadosView } from './modules/asociados.js';
 import { renderArchivoView } from './modules/archivo.js';
-import { renderBolsaView } from '/js/modules/bolsa.js';
+import { renderBolsaView } from './modules/bolsa.js';
 import { renderMisDatos } from './modules/mis-datos.js';
 
 // ===============================
@@ -24,7 +25,6 @@ const roleSummary = document.getElementById('roleSummary');
 const menuButtons = document.getElementById('menuButtons');
 const viewTitle = document.getElementById('viewTitle');
 const viewContent = document.getElementById('viewContent');
-
 
 // ===============================
 // UI BÁSICA
@@ -51,7 +51,6 @@ function setView(title, html) {
   viewContent.innerHTML = html;
 }
 
-
 // ===============================
 // ROLES Y MENÚ
 // ===============================
@@ -64,6 +63,7 @@ function getRoleSummary(role) {
     junta: 'Panel de Junta.',
     asociado: 'Panel de asociado.'
   };
+
   return map[role] || 'Panel básico.';
 }
 
@@ -87,9 +87,6 @@ function getMenuForRole(role) {
   return menus[role] || menus.asociado;
 }
 
-  return menus[role] || menus.asociado;
-}
-
 function renderMenu(role) {
   const items = getMenuForRole(role);
   menuButtons.innerHTML = '';
@@ -107,13 +104,17 @@ function renderMenu(role) {
   });
 }
 
-
 // ===============================
 // VISTAS
 // ===============================
 async function openView(key) {
   if (key === 'dashboard') {
     setView('Dashboard', '<p>Panel principal</p>');
+    return;
+  }
+
+  if (key === 'misdatos') {
+    await renderMisDatos();
     return;
   }
 
@@ -131,8 +132,9 @@ async function openView(key) {
     await renderBolsaView();
     return;
   }
-}
 
+  setView('Dashboard', '<p>Vista no encontrada</p>');
+}
 
 // ===============================
 // LOGIN
@@ -154,7 +156,6 @@ loginForm.addEventListener('submit', async (e) => {
 
   await showWelcome(data.user);
 });
-
 
 // ===============================
 // SESIÓN
@@ -185,7 +186,6 @@ async function checkSession() {
   }
 }
 
-
 // ===============================
 // LOGOUT
 // ===============================
@@ -197,7 +197,6 @@ logoutBtn.addEventListener('click', async () => {
 homeBtn.addEventListener('click', async () => {
   await openView('dashboard');
 });
-
 
 // ===============================
 // INIT
