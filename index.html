@@ -3,22 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>APP ASUME</title>
+  <title>ASUME | Asociación Umbreteña de Empresarios</title>
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
   <div class="card">
-    <h1>🚀 APP ASUME</h1>
-    <p class="subtitle">La asociación empresarial del futuro empieza aquí</p>
+    <h1>ASUME</h1>
+    <p class="subtitle">Asociación Umbreteña de Empresarios</p>
 
-    <div class="intro-box">
-      ✔️ Gestión de asociados<br />
-      ✔️ Tareas y seguimiento<br />
-      ✔️ Subvenciones<br />
-      ✔️ Marketplace local
-    </div>
+    <section id="publicSection" class="public-section">
+      <div class="hero-box">
+        <h2>Un punto de encuentro para empresas que quieren crecer en Umbrete</h2>
+        <p>
+          ASUME nace para conectar, informar, formar y dar visibilidad al tejido empresarial local.
+        </p>
 
-    <div id="loginSection">
+        <div class="public-actions">
+          <a
+            class="primary-link"
+            href="https://forms.gle/ugHjmpvu8uCTc7fj8"
+            target="_blank"
+            rel="noopener"
+          >
+            Quiero unirme a ASUME
+          </a>
+
+          <button id="showLoginBtn" type="button" class="secondary-btn">
+            Acceso asociados
+          </button>
+        </div>
+      </div>
+
+      <div class="public-grid">
+        <div class="public-card">
+          <h3>🤝 Qué es ASUME</h3>
+          <p>
+            Una asociación empresarial local para unir a comercios, autónomos,
+            empresas y profesionales de Umbrete.
+          </p>
+        </div>
+
+        <div class="public-card">
+          <h3>📣 Qué ofrece</h3>
+          <p>
+            Visibilidad, formación, información útil, colaboraciones, bolsa de trabajo
+            y comunicación directa con asociados.
+          </p>
+        </div>
+
+        <div class="public-card">
+          <h3>🏪 Para quién es</h3>
+          <p>
+            Para negocios locales, emprendedores, profesionales y empresas que quieran
+            participar activamente en el crecimiento económico de Umbrete.
+          </p>
+        </div>
+      </div>
+
+      <div class="intro-box">
+        ✔️ Información para asociados<br />
+        ✔️ Convocatorias y actas<br />
+        ✔️ Bolsa de trabajo<br />
+        ✔️ Colaboraciones empresariales<br />
+        ✔️ Futuro marketplace local
+      </div>
+    </section>
+
+    <div id="loginSection" class="hidden">
+      <h2>Acceso asociados</h2>
+
       <form id="loginForm" class="login-form">
         <div>
           <label for="email">Correo electrónico</label>
