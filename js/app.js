@@ -13,6 +13,9 @@ import { renderMisDatos } from './modules/mis-datos.js';
 // ===============================
 // REFERENCIAS DOM
 // ===============================
+const publicSection = document.getElementById('publicSection');
+const showLoginBtn = document.getElementById('showLoginBtn');
+
 const loginForm = document.getElementById('loginForm');
 const message = document.getElementById('message');
 const loginSection = document.getElementById('loginSection');
@@ -35,13 +38,22 @@ function showMessage(text, type = '') {
   if (type) message.classList.add(type);
 }
 
+function showPublic() {
+  if (publicSection) publicSection.classList.remove('hidden');
+  loginSection.classList.add('hidden');
+  welcomeSection.classList.add('hidden');
+  showMessage('');
+}
+
 function showLogin() {
+  if (publicSection) publicSection.classList.add('hidden');
   welcomeSection.classList.add('hidden');
   loginSection.classList.remove('hidden');
   showMessage('');
 }
 
 function showWelcomeShell() {
+  if (publicSection) publicSection.classList.add('hidden');
   loginSection.classList.add('hidden');
   welcomeSection.classList.remove('hidden');
 }
@@ -137,6 +149,13 @@ async function openView(key) {
 }
 
 // ===============================
+// BOTÓN PÚBLICO
+// ===============================
+showLoginBtn?.addEventListener('click', () => {
+  showLogin();
+});
+
+// ===============================
 // LOGIN
 // ===============================
 loginForm.addEventListener('submit', async (e) => {
@@ -182,7 +201,7 @@ async function checkSession() {
   if (data.session && data.session.user) {
     await showWelcome(data.session.user);
   } else {
-    showLogin();
+    showPublic();
   }
 }
 
@@ -191,7 +210,7 @@ async function checkSession() {
 // ===============================
 logoutBtn.addEventListener('click', async () => {
   await logout();
-  showLogin();
+  showPublic();
 });
 
 homeBtn.addEventListener('click', async () => {
