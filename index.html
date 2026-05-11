@@ -6,38 +6,46 @@
 
   <title>ASUME | Asociación Umbreteña de Empresarios</title>
 
+  <meta
+    name="description"
+    content="ASUME - Asociación Umbreteña de Empresarios. Información, networking, visibilidad local, bolsa de trabajo y colaboración empresarial en Umbrete."
+  />
+
   <link rel="stylesheet" href="./css/styles.css" />
 </head>
 
 <body>
   <div class="card">
 
-    <!-- HERO PRINCIPAL -->
+    <!-- LOGO -->
+    <div class="logo-wrap">
+      <img
+        src="./img/logo-asume.jpg"
+        alt="Logo ASUME"
+        class="main-logo"
+      />
+    </div>
+
+    <p class="subtitle">
+      Asociación Umbreteña de Empresarios
+    </p>
+
+    <!-- ZONA PÚBLICA -->
     <section id="publicSection" class="public-section">
 
-      <div class="hero-box public-hero">
-
-        <span class="public-badge">
-          Asociación empresarial local
-        </span>
-
-        <h1>ASUME</h1>
-
-        <p class="subtitle">
-          Asociación Umbreteña de Empresarios
-        </p>
-
+      <div class="hero-box">
         <h2>
           Conectamos negocios, personas y oportunidades en Umbrete
         </h2>
 
-        <p class="hero-text">
+        <p>
           ASUME es un punto de encuentro para empresas, autónomos,
           comercios y profesionales que quieren crecer juntos,
           colaborar y fortalecer el tejido empresarial local.
         </p>
 
         <div class="public-actions">
+
           <a
             class="primary-link"
             href="https://forms.gle/ugHjmpvu8uCTc7fj8"
@@ -54,27 +62,8 @@
           >
             🔐 Acceso asociados
           </button>
+
         </div>
-      </div>
-
-      <!-- ESTADÍSTICAS -->
-      <div class="stats-grid">
-
-        <div class="stat-card">
-          <strong>Empresas</strong>
-          <span>Conectando negocios locales</span>
-        </div>
-
-        <div class="stat-card">
-          <strong>Visibilidad</strong>
-          <span>Impulso al comercio local</span>
-        </div>
-
-        <div class="stat-card">
-          <strong>Colaboración</strong>
-          <span>Empresas creciendo juntas</span>
-        </div>
-
       </div>
 
       <!-- BLOQUES -->
@@ -102,8 +91,8 @@
           <h3>🎓 Formación e información</h3>
 
           <p>
-            Jornadas, ayudas, convocatorias, recursos y herramientas
-            útiles para el día a día empresarial.
+            Jornadas, ayudas, convocatorias, recursos y herramientas útiles
+            para el día a día empresarial.
           </p>
         </div>
 
@@ -111,22 +100,20 @@
           <h3>💼 Bolsa de trabajo</h3>
 
           <p>
-            Publica ofertas, encuentra perfiles
-            y crea oportunidades laborales dentro del entorno local.
+            Publica ofertas, encuentra perfiles y crea oportunidades laborales
+            dentro del entorno local.
           </p>
         </div>
 
       </div>
 
-      <!-- LISTA -->
+      <!-- LISTADO -->
       <div class="intro-box public-list">
-
         ✔️ Información para asociados<br />
         ✔️ Convocatorias y actas<br />
         ✔️ Bolsa de trabajo<br />
         ✔️ Colaboraciones empresariales<br />
         ✔️ Futuro marketplace local
-
       </div>
 
     </section>
@@ -189,9 +176,7 @@
 
         <div id="viewBox" class="view-box">
 
-          <h3 id="viewTitle">
-            Dashboard
-          </h3>
+          <h3 id="viewTitle">Dashboard</h3>
 
           <div id="viewContent">
             <p>
@@ -217,8 +202,18 @@
 
     </div>
 
+    <!-- FOOTER -->
     <p class="footer">
-      Creado por Globalum Marketing 😏
+      Creado por
+      <a
+        href="https://globalummarketing.es/"
+        target="_blank"
+        rel="noopener"
+        class="footer-link"
+      >
+        Globalum Marketing
+      </a>
+      😏
     </p>
 
   </div>
@@ -226,6 +221,5 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script type="module" src="./js/app.js"></script>
-
 </body>
 </html>
