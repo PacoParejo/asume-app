@@ -482,3 +482,15 @@ th {
     font-size: 16px;
   }
 }
+/* ===============================
+   LOGO ASUME
+=============================== */
+
+.logo {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  display: block;
+  margin: 0 auto 20px;
+  border-radius: 18px;
+}
