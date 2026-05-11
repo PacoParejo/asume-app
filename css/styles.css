@@ -483,14 +483,18 @@ th {
   }
 }
 /* ===============================
-   LOGO PRINCIPAL
+   LOGO PRINCIPAL ASUME
 =============================== */
 
+.logo-wrap {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
 .main-logo {
-  width: 100%;
-  max-width: 320px;
-  height: auto;
-  display: block;
-  margin: 0 auto 20px;
+  width: 320px !important;
+  max-width: 80% !important;
+  height: auto !important;
+  display: inline-block;
   border-radius: 18px;
 }
