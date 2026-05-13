@@ -20,6 +20,7 @@ const backToHomeBtn = document.getElementById('backToHomeBtn');
 
 const loginForm = document.getElementById('loginForm');
 const message = document.getElementById('message');
+
 const loginSection = document.getElementById('loginSection');
 const welcomeSection = document.getElementById('welcomeSection');
 
@@ -31,17 +32,12 @@ const roleBadge = document.getElementById('roleBadge');
 const roleSummary = document.getElementById('roleSummary');
 
 const menuButtons = document.getElementById('menuButtons');
+
 const viewTitle = document.getElementById('viewTitle');
 const viewContent = document.getElementById('viewContent');
 
-// Reset contraseña
-const showResetFormBtn = document.getElementById('showResetFormBtn');
-const resetBox = document.getElementById('resetBox');
-const sendResetBtn = document.getElementById('sendResetBtn');
-const resetEmail = document.getElementById('resetEmail');
-
 // ===============================
-// UI
+// UI BÁSICA
 // ===============================
 function showMessage(text, type = '') {
   message.textContent = text;
@@ -53,21 +49,32 @@ function showMessage(text, type = '') {
 }
 
 function showPublic() {
-  publicSection?.classList.remove('hidden');
+  if (publicSection) {
+    publicSection.classList.remove('hidden');
+  }
+
   loginSection.classList.add('hidden');
   welcomeSection.classList.add('hidden');
+
   showMessage('');
 }
 
 function showLogin() {
-  publicSection?.classList.add('hidden');
+  if (publicSection) {
+    publicSection.classList.add('hidden');
+  }
+
   welcomeSection.classList.add('hidden');
   loginSection.classList.remove('hidden');
+
   showMessage('');
 }
 
 function showWelcomeShell() {
-  publicSection?.classList.add('hidden');
+  if (publicSection) {
+    publicSection.classList.add('hidden');
+  }
+
   loginSection.classList.add('hidden');
   welcomeSection.classList.remove('hidden');
 }
@@ -90,7 +97,7 @@ function getRoleSummary(role) {
     asociado: 'Panel de asociado.'
   };
 
-  return map[role] || 'Panel básico';
+  return map[role] || 'Panel básico.';
 }
 
 function getMenuForRole(role) {
@@ -115,10 +122,12 @@ function getMenuForRole(role) {
 
 function renderMenu(role) {
   const items = getMenuForRole(role);
+
   menuButtons.innerHTML = '';
 
   items.forEach(item => {
     const btn = document.createElement('button');
+
     btn.className = 'menu-btn';
     btn.textContent = item.label;
 
@@ -134,6 +143,7 @@ function renderMenu(role) {
 // VISTAS
 // ===============================
 async function openView(key) {
+
   if (key === 'dashboard') {
     await renderDashboard();
     return;
@@ -159,7 +169,10 @@ async function openView(key) {
     return;
   }
 
-  setView('Dashboard', '<p>Vista no encontrada</p>');
+  setView(
+    'Dashboard',
+    '<p>Vista no encontrada</p>'
+  );
 }
 
 // ===============================
@@ -176,11 +189,17 @@ backToHomeBtn?.addEventListener('click', () => {
 // ===============================
 // LOGIN
 // ===============================
-loginForm.addEventListener('submit', async (e) => {
+loginForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+  const email = document
+    .getElementById('email')
+    .value
+    .trim();
+
+  const password = document
+    .getElementById('password')
+    .value;
 
   showMessage('Entrando...');
 
@@ -198,26 +217,41 @@ loginForm.addEventListener('submit', async (e) => {
 // SESIÓN
 // ===============================
 async function showWelcome(user) {
+
   showWelcomeShell();
 
   const profile = await getUserProfile(user.id);
 
-  const email = profile?.data?.email || user.email;
-  const role = profile?.data?.role || 'asociado';
+  const email =
+    profile?.data?.email || user.email;
 
-  userInfo.textContent = `Has iniciado sesión como: ${email}`;
-  roleBadge.textContent = `Rol: ${role}`;
-  roleSummary.textContent = getRoleSummary(role);
+  const role =
+    profile?.data?.role || 'asociado';
+
+  userInfo.textContent =
+    `Has iniciado sesión como: ${email}`;
+
+  roleBadge.textContent =
+    `Rol: ${role}`;
+
+  roleSummary.textContent =
+    getRoleSummary(role);
 
   renderMenu(role);
+
   await openView('dashboard');
 }
 
 async function checkSession() {
+
   const { data } = await getSession();
 
-  if (data.session && data.session.user) {
+  if (
+    data.session &&
+    data.session.user
+  ) {
     await showWelcome(data.session.user);
+
   } else {
     showPublic();
   }
@@ -226,33 +260,62 @@ async function checkSession() {
 // ===============================
 // LOGOUT
 // ===============================
-logoutBtn.addEventListener('click', async () => {
+logoutBtn?.addEventListener('click', async () => {
   await logout();
   showPublic();
 });
 
-homeBtn.addEventListener('click', async () => {
+homeBtn?.addEventListener('click', async () => {
   await openView('dashboard');
 });
 
 // ===============================
 // SOLICITAR NUEVA CONTRASEÑA
 // ===============================
-showResetFormBtn?.addEventListener('click', () => {
-  resetBox?.classList.toggle('hidden');
-});
+document.addEventListener('click', (e) => {
 
-sendResetBtn?.addEventListener('click', () => {
-  const email = resetEmail?.value.trim();
+  // MOSTRAR / OCULTAR FORMULARIO
+  if (
+    e.target &&
+    e.target.id === 'showResetFormBtn'
+  ) {
 
-  if (!email) {
-    alert('Introduce tu correo electrónico.');
-    return;
+    e.preventDefault();
+
+    const resetBox =
+      document.getElementById('resetBox');
+
+    if (resetBox) {
+      resetBox.classList.toggle('hidden');
+    }
   }
 
-  const subject = encodeURIComponent('Solicitud de nueva contraseña ASUME');
+  // ENVIAR SOLICITUD
+  if (
+    e.target &&
+    e.target.id === 'sendResetBtn'
+  ) {
 
-  const body = encodeURIComponent(
+    e.preventDefault();
+
+    const resetEmail =
+      document.getElementById('resetEmail');
+
+    const email =
+      resetEmail?.value.trim();
+
+    if (!email) {
+      alert(
+        'Introduce tu correo electrónico.'
+      );
+      return;
+    }
+
+    const subject = encodeURIComponent(
+      'Solicitud de nueva contraseña ASUME'
+    );
+
+    const body = encodeURIComponent(
 `Hola,
 
 Solicito una nueva contraseña para acceder a ASUME.
@@ -261,12 +324,13 @@ Correo asociado:
 ${email}
 
 Gracias.`
-  );
+    );
 
-  const gmailUrl =
-    `https://mail.google.com/mail/?view=cm&fs=1&to=globaltum@gmail.com&su=${subject}&body=${body}`;
+    const gmailUrl =
+      `https://mail.google.com/mail/?view=cm&fs=1&to=globaltum@gmail.com&su=${subject}&body=${body}`;
 
-  window.open(gmailUrl, '_blank');
+    window.open(gmailUrl, '_blank');
+  }
 });
 
 // ===============================
