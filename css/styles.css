@@ -128,3 +128,57 @@
   }
 
 }
+/* ===============================
+   FIX RESPONSIVE CARTEL EVENTO
+=============================== */
+
+.event-highlight {
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+}
+
+.event-image {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.event-image img {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+
+/* Tablet y móvil */
+@media (max-width: 900px) {
+  .event-highlight {
+    grid-template-columns: 1fr !important;
+    padding: 18px !important;
+    gap: 18px !important;
+  }
+
+  .event-image {
+    max-width: 260px !important;
+    margin: 0 auto !important;
+  }
+
+  .event-image img {
+    max-width: 260px !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* Móvil pequeño */
+@media (max-width: 480px) {
+  .event-image {
+    max-width: 210px !important;
+  }
+
+  .event-image img {
+    max-width: 210px !important;
+  }
+
+  .event-highlight {
+    padding: 14px !important;
+  }
+}
