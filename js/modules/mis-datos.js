@@ -8,8 +8,8 @@ function setView(title, html) {
   if (viewContent) viewContent.innerHTML = html;
 }
 
-function safe(v) {
-  return v || '';
+function safe(value) {
+  return value || '';
 }
 
 function getFormHTML(profile = {}) {
@@ -52,52 +52,102 @@ function getFormHTML(profile = {}) {
   `;
 }
 
-export async function renderMisDatos() {
-
-  setView('Mis datos', '<p class="loading">Cargando...</p>');
-
-  // 👉 usuario actual
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
-
-  if (!user) {
-    setView('Mis datos', '<p class="error">No hay sesión</p>');
-    return;
-  }
-
-  // 👉 profile
-  const { data: profile, error } = await supabase
+async function cargarProfile(user) {
+  const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    setView('Mis datos', `<p class="error">${error.message}</p>`);
+    return { profile: null, error };
+  }
+
+  if (data) {
+    return { profile: data, error: null };
+  }
+
+  const nuevoProfile = {
+    id: user.id,
+    email: user.email || '',
+    role: 'asociado',
+    nombre: '',
+    telefono: '',
+    poblacion: ''
+  };
+
+  const { data: creado, error: insertError } = await supabase
+    .from('profiles')
+    .insert([nuevoProfile])
+    .select()
+    .single();
+
+  if (insertError) {
+    return { profile: null, error: insertError };
+  }
+
+  return { profile: creado, error: null };
+}
+
+async function guardarNotificaciones(userId, cambios = []) {
+  if (!cambios.length) return;
+
+  const payload = cambios.map(cambio => ({
+    user_id: userId,
+    tipo: 'cambio_datos',
+    entidad: 'profile',
+    campo: cambio.campo,
+    valor_anterior: cambio.antes,
+    valor_nuevo: cambio.despues,
+    mensaje: `Cambio en ${cambio.campo}`
+  }));
+
+  await supabase
+    .from('notificaciones')
+    .insert(payload);
+}
+
+export async function renderMisDatos() {
+  setView('Mis datos', '<p class="loading">Cargando...</p>');
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const user = userData?.user;
+
+  if (userError || !user) {
+    setView('Mis datos', '<p class="error">No hay sesión activa.</p>');
+    return;
+  }
+
+  const { profile, error } = await cargarProfile(user);
+
+  if (error) {
+    setView('Mis datos', `<p class="error">Error al cargar perfil: ${error.message}</p>`);
     return;
   }
 
   setView('Mis datos', getFormHTML(profile));
 
-  // 👉 guardar cambios
   const form = document.getElementById('misDatosForm');
 
-  form.addEventListener('submit', async (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const msg = document.getElementById('msg');
     msg.textContent = 'Guardando...';
+    msg.className = 'message';
 
     const nuevo = {
+      id: user.id,
+      email: profile.email || user.email || '',
+      role: profile.role || 'asociado',
       nombre: document.getElementById('nombre').value.trim(),
       telefono: document.getElementById('telefono').value.trim(),
       poblacion: document.getElementById('poblacion').value.trim()
     };
 
-    // 👉 detectar cambios
     const cambios = [];
 
-    ['nombre','telefono','poblacion'].forEach(campo => {
+    ['nombre', 'telefono', 'poblacion'].forEach(campo => {
       const antes = profile[campo] || '';
       const despues = nuevo[campo] || '';
 
@@ -110,30 +160,32 @@ export async function renderMisDatos() {
       }
     });
 
-    // 👉 update profile
-    const { error: updateError } = await supabase
+    const { error: saveError } = await supabase
       .from('profiles')
-      .update(nuevo)
-      .eq('id', user.id);
+      .upsert(nuevo, { onConflict: 'id' });
 
-    if (updateError) {
-      msg.textContent = 'Error: ' + updateError.message;
+    if (saveError) {
+      msg.textContent = 'Error al guardar: ' + saveError.message;
+      msg.className = 'message error';
       return;
     }
 
-    // 👉 guardar notificaciones SOLO si hay cambios
-    for (const c of cambios) {
-      await supabase.from('notificaciones').insert([{
-        user_id: user.id,
-        tipo: 'cambio_datos',
-        entidad: 'profile',
-        campo: c.campo,
-        valor_anterior: c.antes,
-        valor_nuevo: c.despues,
-        mensaje: `Cambio en ${c.campo}`
-      }]);
+    await guardarNotificaciones(user.id, cambios);
+
+    const { profile: actualizado, error: reloadError } = await cargarProfile(user);
+
+    if (reloadError) {
+      msg.textContent = 'Guardado, pero no se pudo recargar: ' + reloadError.message;
+      msg.className = 'message error';
+      return;
     }
 
-    msg.textContent = 'Datos actualizados correctamente';
+    setView('Mis datos', getFormHTML(actualizado));
+
+    const nuevoMsg = document.getElementById('msg');
+    if (nuevoMsg) {
+      nuevoMsg.textContent = 'Datos actualizados correctamente';
+      nuevoMsg.className = 'message success';
+    }
   });
 }
