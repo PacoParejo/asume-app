@@ -16,6 +16,7 @@ import { renderDashboard } from './modules/dashboard.js';
 // ===============================
 const publicSection = document.getElementById('publicSection');
 const showLoginBtn = document.getElementById('showLoginBtn');
+const showLoginBtnFooter = document.getElementById('showLoginBtnFooter');
 const backToHomeBtn = document.getElementById('backToHomeBtn');
 
 const loginForm = document.getElementById('loginForm');
@@ -154,6 +155,10 @@ async function openView(key) {
 // BOTONES PÚBLICOS
 // ===============================
 showLoginBtn?.addEventListener('click', () => {
+  showLogin();
+});
+
+showLoginBtnFooter?.addEventListener('click', () => {
   showLogin();
 });
 
