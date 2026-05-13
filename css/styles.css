@@ -456,3 +456,47 @@ input:focus {
   }
 
 }
+/* ===============================
+   FIX DEFINITIVO CARTEL EN MÓVIL
+=============================== */
+
+@media (max-width: 700px) {
+  html,
+  body {
+    width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  .card,
+  .public-section,
+  .event-highlight,
+  .event-image {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .event-highlight {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 14px !important;
+    margin: 20px 0 !important;
+  }
+
+  .event-image img {
+    width: 100% !important;
+    max-width: 240px !important;
+    min-width: 0 !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 auto !important;
+    object-fit: contain !important;
+  }
+
+  .event-info {
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: center !important;
+  }
+}
