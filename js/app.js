@@ -15,6 +15,7 @@ import { renderMisDatos } from './modules/mis-datos.js';
 // ===============================
 const publicSection = document.getElementById('publicSection');
 const showLoginBtn = document.getElementById('showLoginBtn');
+const backToHomeBtn = document.getElementById('backToHomeBtn');
 
 const loginForm = document.getElementById('loginForm');
 const message = document.getElementById('message');
@@ -149,10 +150,14 @@ async function openView(key) {
 }
 
 // ===============================
-// BOTÓN PÚBLICO
+// BOTONES PÚBLICOS
 // ===============================
 showLoginBtn?.addEventListener('click', () => {
   showLogin();
+});
+
+backToHomeBtn?.addEventListener('click', () => {
+  showPublic();
 });
 
 // ===============================
