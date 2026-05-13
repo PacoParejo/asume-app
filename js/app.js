@@ -16,47 +16,57 @@ import { renderDashboard } from './modules/dashboard.js';
 // ===============================
 const publicSection = document.getElementById('publicSection');
 const showLoginBtn = document.getElementById('showLoginBtn');
-const showLoginBtnFooter = document.getElementById('showLoginBtnFooter');
 const backToHomeBtn = document.getElementById('backToHomeBtn');
 
 const loginForm = document.getElementById('loginForm');
 const message = document.getElementById('message');
 const loginSection = document.getElementById('loginSection');
 const welcomeSection = document.getElementById('welcomeSection');
+
 const userInfo = document.getElementById('userInfo');
 const logoutBtn = document.getElementById('logoutBtn');
 const homeBtn = document.getElementById('homeBtn');
+
 const roleBadge = document.getElementById('roleBadge');
 const roleSummary = document.getElementById('roleSummary');
+
 const menuButtons = document.getElementById('menuButtons');
 const viewTitle = document.getElementById('viewTitle');
 const viewContent = document.getElementById('viewContent');
 
 // ===============================
-// UI BÁSICA
+// UI
 // ===============================
 function showMessage(text, type = '') {
   message.textContent = text;
   message.className = 'message';
-  if (type) message.classList.add(type);
+
+  if (type) {
+    message.classList.add(type);
+  }
 }
 
 function showPublic() {
-  if (publicSection) publicSection.classList.remove('hidden');
+  publicSection?.classList.remove('hidden');
+
   loginSection.classList.add('hidden');
   welcomeSection.classList.add('hidden');
+
   showMessage('');
 }
 
 function showLogin() {
-  if (publicSection) publicSection.classList.add('hidden');
+  publicSection?.classList.add('hidden');
+
   welcomeSection.classList.add('hidden');
   loginSection.classList.remove('hidden');
+
   showMessage('');
 }
 
 function showWelcomeShell() {
-  if (publicSection) publicSection.classList.add('hidden');
+  publicSection?.classList.add('hidden');
+
   loginSection.classList.add('hidden');
   welcomeSection.classList.remove('hidden');
 }
@@ -67,9 +77,10 @@ function setView(title, html) {
 }
 
 // ===============================
-// ROLES Y MENÚ
+// ROLES
 // ===============================
 function getRoleSummary(role) {
+
   const map = {
     superadmin: 'Acceso total activado.',
     presidente: 'Panel de Presidencia.',
@@ -79,11 +90,13 @@ function getRoleSummary(role) {
     asociado: 'Panel de asociado.'
   };
 
-  return map[role] || 'Panel básico.';
+  return map[role] || 'Panel básico';
 }
 
 function getMenuForRole(role) {
+
   const menus = {
+
     superadmin: [
       { key: 'dashboard', label: '🏠 Dashboard' },
       { key: 'misdatos', label: '👤 Mis datos' },
@@ -97,17 +110,22 @@ function getMenuForRole(role) {
       { key: 'misdatos', label: '👤 Mis datos' },
       { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
     ]
+
   };
 
   return menus[role] || menus.asociado;
 }
 
 function renderMenu(role) {
+
   const items = getMenuForRole(role);
+
   menuButtons.innerHTML = '';
 
   items.forEach(item => {
+
     const btn = document.createElement('button');
+
     btn.className = 'menu-btn';
     btn.textContent = item.label;
 
@@ -116,13 +134,16 @@ function renderMenu(role) {
     });
 
     menuButtons.appendChild(btn);
+
   });
+
 }
 
 // ===============================
 // VISTAS
 // ===============================
 async function openView(key) {
+
   if (key === 'dashboard') {
     await renderDashboard();
     return;
@@ -148,17 +169,17 @@ async function openView(key) {
     return;
   }
 
-  setView('Dashboard', '<p>Vista no encontrada</p>');
+  setView(
+    'Dashboard',
+    '<p>Vista no encontrada</p>'
+  );
+
 }
 
 // ===============================
-// BOTONES PÚBLICOS
+// BOTONES
 // ===============================
 showLoginBtn?.addEventListener('click', () => {
-  showLogin();
-});
-
-showLoginBtnFooter?.addEventListener('click', () => {
   showLogin();
 });
 
@@ -170,14 +191,19 @@ backToHomeBtn?.addEventListener('click', () => {
 // LOGIN
 // ===============================
 loginForm.addEventListener('submit', async (e) => {
+
   e.preventDefault();
 
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+  const email =
+    document.getElementById('email').value.trim();
+
+  const password =
+    document.getElementById('password').value;
 
   showMessage('Entrando...');
 
-  const { data, error } = await login(email, password);
+  const { data, error } =
+    await login(email, password);
 
   if (error) {
     showMessage(error.message, 'error');
@@ -185,47 +211,114 @@ loginForm.addEventListener('submit', async (e) => {
   }
 
   await showWelcome(data.user);
+
 });
 
 // ===============================
 // SESIÓN
 // ===============================
 async function showWelcome(user) {
+
   showWelcomeShell();
 
-  const profile = await getUserProfile(user.id);
+  const profile =
+    await getUserProfile(user.id);
 
-  const email = profile?.data?.email || user.email;
-  const role = profile?.data?.role || 'asociado';
+  const email =
+    profile?.data?.email || user.email;
 
-  userInfo.textContent = `Has iniciado sesión como: ${email}`;
-  roleBadge.textContent = `Rol: ${role}`;
-  roleSummary.textContent = getRoleSummary(role);
+  const role =
+    profile?.data?.role || 'asociado';
+
+  userInfo.textContent =
+    `Has iniciado sesión como: ${email}`;
+
+  roleBadge.textContent =
+    `Rol: ${role}`;
+
+  roleSummary.textContent =
+    getRoleSummary(role);
 
   renderMenu(role);
+
   await openView('dashboard');
+
 }
 
 async function checkSession() {
-  const { data } = await getSession();
+
+  const { data } =
+    await getSession();
 
   if (data.session && data.session.user) {
     await showWelcome(data.session.user);
   } else {
     showPublic();
   }
+
 }
 
 // ===============================
 // LOGOUT
 // ===============================
 logoutBtn.addEventListener('click', async () => {
+
   await logout();
+
   showPublic();
+
 });
 
 homeBtn.addEventListener('click', async () => {
+
   await openView('dashboard');
+
+});
+
+// ===============================
+// RESET PASSWORD
+// ===============================
+const showResetFormBtn =
+  document.getElementById('showResetFormBtn');
+
+const resetForm =
+  document.getElementById('resetForm');
+
+showResetFormBtn?.addEventListener('click', () => {
+
+  resetForm.classList.toggle('hidden');
+
+});
+
+resetForm?.addEventListener('submit', async (e) => {
+
+  e.preventDefault();
+
+  const email =
+    document.getElementById('resetEmail')
+    .value
+    .trim();
+
+  const subject =
+    encodeURIComponent(
+      'Solicitud de nueva contraseña ASUME'
+    );
+
+  const body =
+    encodeURIComponent(
+`Hola,
+
+Quiero solicitar una nueva contraseña para acceder a ASUME.
+
+Correo asociado:
+${email}
+
+Gracias.`
+    );
+
+  window.location.href =
+    `mailto:globaltum@gmail.com?subject=${subject}&body=${body}`;
+
 });
 
 // ===============================
