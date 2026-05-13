@@ -736,3 +736,14 @@ th {
     width: 100%;
   }
 }
+.event-image {
+  max-width: 320px;
+  margin: 0 auto 20px;
+}
+
+.event-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 18px;
+}
