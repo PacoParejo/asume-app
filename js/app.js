@@ -34,6 +34,12 @@ const menuButtons = document.getElementById('menuButtons');
 const viewTitle = document.getElementById('viewTitle');
 const viewContent = document.getElementById('viewContent');
 
+// Reset contraseña
+const showResetFormBtn = document.getElementById('showResetFormBtn');
+const resetBox = document.getElementById('resetBox');
+const sendResetBtn = document.getElementById('sendResetBtn');
+const resetEmail = document.getElementById('resetEmail');
+
 // ===============================
 // UI
 // ===============================
@@ -48,25 +54,20 @@ function showMessage(text, type = '') {
 
 function showPublic() {
   publicSection?.classList.remove('hidden');
-
   loginSection.classList.add('hidden');
   welcomeSection.classList.add('hidden');
-
   showMessage('');
 }
 
 function showLogin() {
   publicSection?.classList.add('hidden');
-
   welcomeSection.classList.add('hidden');
   loginSection.classList.remove('hidden');
-
   showMessage('');
 }
 
 function showWelcomeShell() {
   publicSection?.classList.add('hidden');
-
   loginSection.classList.add('hidden');
   welcomeSection.classList.remove('hidden');
 }
@@ -114,12 +115,10 @@ function getMenuForRole(role) {
 
 function renderMenu(role) {
   const items = getMenuForRole(role);
-
   menuButtons.innerHTML = '';
 
   items.forEach(item => {
     const btn = document.createElement('button');
-
     btn.className = 'menu-btn';
     btn.textContent = item.label;
 
@@ -160,14 +159,11 @@ async function openView(key) {
     return;
   }
 
-  setView(
-    'Dashboard',
-    '<p>Vista no encontrada</p>'
-  );
+  setView('Dashboard', '<p>Vista no encontrada</p>');
 }
 
 // ===============================
-// BOTONES
+// BOTONES PÚBLICOS
 // ===============================
 showLoginBtn?.addEventListener('click', () => {
   showLogin();
@@ -183,16 +179,12 @@ backToHomeBtn?.addEventListener('click', () => {
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const email =
-    document.getElementById('email').value.trim();
-
-  const password =
-    document.getElementById('password').value;
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
 
   showMessage('Entrando...');
 
-  const { data, error } =
-    await login(email, password);
+  const { data, error } = await login(email, password);
 
   if (error) {
     showMessage(error.message, 'error');
@@ -208,32 +200,21 @@ loginForm.addEventListener('submit', async (e) => {
 async function showWelcome(user) {
   showWelcomeShell();
 
-  const profile =
-    await getUserProfile(user.id);
+  const profile = await getUserProfile(user.id);
 
-  const email =
-    profile?.data?.email || user.email;
+  const email = profile?.data?.email || user.email;
+  const role = profile?.data?.role || 'asociado';
 
-  const role =
-    profile?.data?.role || 'asociado';
-
-  userInfo.textContent =
-    `Has iniciado sesión como: ${email}`;
-
-  roleBadge.textContent =
-    `Rol: ${role}`;
-
-  roleSummary.textContent =
-    getRoleSummary(role);
+  userInfo.textContent = `Has iniciado sesión como: ${email}`;
+  roleBadge.textContent = `Rol: ${role}`;
+  roleSummary.textContent = getRoleSummary(role);
 
   renderMenu(role);
-
   await openView('dashboard');
 }
 
 async function checkSession() {
-  const { data } =
-    await getSession();
+  const { data } = await getSession();
 
   if (data.session && data.session.user) {
     await showWelcome(data.session.user);
@@ -247,7 +228,6 @@ async function checkSession() {
 // ===============================
 logoutBtn.addEventListener('click', async () => {
   await logout();
-
   showPublic();
 });
 
@@ -256,42 +236,32 @@ homeBtn.addEventListener('click', async () => {
 });
 
 // ===============================
-// RESET PASSWORD
+// SOLICITAR NUEVA CONTRASEÑA
 // ===============================
-const showResetFormBtn =
-  document.getElementById('showResetFormBtn');
-
-const resetForm =
-  document.getElementById('resetForm');
-
 showResetFormBtn?.addEventListener('click', () => {
-  resetForm.classList.toggle('hidden');
+  resetBox?.classList.toggle('hidden');
 });
 
-resetForm?.addEventListener('submit', async (e) => {
-  e.preventDefault();
+sendResetBtn?.addEventListener('click', () => {
+  const email = resetEmail?.value.trim();
 
-  const email =
-    document.getElementById('resetEmail')
-      .value
-      .trim();
+  if (!email) {
+    alert('Introduce tu correo electrónico.');
+    return;
+  }
 
-  const subject =
-    encodeURIComponent(
-      'Solicitud de nueva contraseña ASUME'
-    );
+  const subject = encodeURIComponent('Solicitud de nueva contraseña ASUME');
 
-  const body =
-    encodeURIComponent(
+  const body = encodeURIComponent(
 `Hola,
 
-Quiero solicitar una nueva contraseña para acceder a ASUME.
+Solicito una nueva contraseña para acceder a ASUME.
 
 Correo asociado:
 ${email}
 
 Gracias.`
-    );
+  );
 
   const gmailUrl =
     `https://mail.google.com/mail/?view=cm&fs=1&to=globaltum@gmail.com&su=${subject}&body=${body}`;
