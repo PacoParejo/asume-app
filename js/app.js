@@ -80,7 +80,6 @@ function setView(title, html) {
 // ROLES
 // ===============================
 function getRoleSummary(role) {
-
   const map = {
     superadmin: 'Acceso total activado.',
     presidente: 'Panel de Presidencia.',
@@ -94,9 +93,7 @@ function getRoleSummary(role) {
 }
 
 function getMenuForRole(role) {
-
   const menus = {
-
     superadmin: [
       { key: 'dashboard', label: '🏠 Dashboard' },
       { key: 'misdatos', label: '👤 Mis datos' },
@@ -110,20 +107,17 @@ function getMenuForRole(role) {
       { key: 'misdatos', label: '👤 Mis datos' },
       { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
     ]
-
   };
 
   return menus[role] || menus.asociado;
 }
 
 function renderMenu(role) {
-
   const items = getMenuForRole(role);
 
   menuButtons.innerHTML = '';
 
   items.forEach(item => {
-
     const btn = document.createElement('button');
 
     btn.className = 'menu-btn';
@@ -134,16 +128,13 @@ function renderMenu(role) {
     });
 
     menuButtons.appendChild(btn);
-
   });
-
 }
 
 // ===============================
 // VISTAS
 // ===============================
 async function openView(key) {
-
   if (key === 'dashboard') {
     await renderDashboard();
     return;
@@ -173,7 +164,6 @@ async function openView(key) {
     'Dashboard',
     '<p>Vista no encontrada</p>'
   );
-
 }
 
 // ===============================
@@ -191,7 +181,6 @@ backToHomeBtn?.addEventListener('click', () => {
 // LOGIN
 // ===============================
 loginForm.addEventListener('submit', async (e) => {
-
   e.preventDefault();
 
   const email =
@@ -211,14 +200,12 @@ loginForm.addEventListener('submit', async (e) => {
   }
 
   await showWelcome(data.user);
-
 });
 
 // ===============================
 // SESIÓN
 // ===============================
 async function showWelcome(user) {
-
   showWelcomeShell();
 
   const profile =
@@ -242,11 +229,9 @@ async function showWelcome(user) {
   renderMenu(role);
 
   await openView('dashboard');
-
 }
 
 async function checkSession() {
-
   const { data } =
     await getSession();
 
@@ -255,24 +240,19 @@ async function checkSession() {
   } else {
     showPublic();
   }
-
 }
 
 // ===============================
 // LOGOUT
 // ===============================
 logoutBtn.addEventListener('click', async () => {
-
   await logout();
 
   showPublic();
-
 });
 
 homeBtn.addEventListener('click', async () => {
-
   await openView('dashboard');
-
 });
 
 // ===============================
@@ -285,19 +265,16 @@ const resetForm =
   document.getElementById('resetForm');
 
 showResetFormBtn?.addEventListener('click', () => {
-
   resetForm.classList.toggle('hidden');
-
 });
 
 resetForm?.addEventListener('submit', async (e) => {
-
   e.preventDefault();
 
   const email =
     document.getElementById('resetEmail')
-    .value
-    .trim();
+      .value
+      .trim();
 
   const subject =
     encodeURIComponent(
@@ -316,9 +293,10 @@ ${email}
 Gracias.`
     );
 
-  window.location.href =
-    `mailto:globaltum@gmail.com?subject=${subject}&body=${body}`;
+  const gmailUrl =
+    `https://mail.google.com/mail/?view=cm&fs=1&to=globaltum@gmail.com&su=${subject}&body=${body}`;
 
+  window.open(gmailUrl, '_blank');
 });
 
 // ===============================
