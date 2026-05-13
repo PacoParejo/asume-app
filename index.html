@@ -34,6 +34,7 @@
     <!-- ZONA PÚBLICA -->
     <section id="publicSection" class="public-section">
 
+      <!-- HERO -->
       <div class="hero-box">
 
         <div class="event-badge">
@@ -50,67 +51,69 @@
           el tejido empresarial local de Umbrete.
         </p>
 
-        <div class="event-highlight">
+      </div>
 
-          <div class="event-image">
-            <img
-              src="./img/evento-asume-junio.jpg"
-              alt="Presentación oficial ASUME"
-            />
-          </div>
+      <!-- EVENTO -->
+      <div class="event-highlight">
 
-          <div class="event-info">
-
-            <h3>🎉 Presentación Oficial de ASUME</h3>
-
-            <p>
-              Un gran encuentro empresarial abierto a empresarios,
-              autónomos, comerciantes y emprendedores de Umbrete.
-            </p>
-
-            <ul>
-              <li>📅 11 de junio de 2026</li>
-              <li>🕗 Desde las 20:00 h</li>
-              <li>📍 Salones José Benítez</li>
-              <li>🥂 Aperitivo incluido</li>
-            </ul>
-
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSc9ysV5NC-ecxmV6CCBwLTR2VxdeWZ6gZgtYrurttKfBtrymQ/viewform"
-              target="_blank"
-              rel="noopener"
-              class="event-btn"
-            >
-              ✅ Reservar plaza
-            </a>
-
-          </div>
-
+        <div class="event-image">
+          <img
+            src="./img/evento-asume-junio.jpg"
+            alt="Presentación oficial ASUME"
+          />
         </div>
 
-        <div class="public-actions">
+        <div class="event-info">
+
+          <h3>🎉 Presentación Oficial de ASUME</h3>
+
+          <p>
+            Un gran encuentro empresarial abierto a empresarios,
+            autónomos, comerciantes y emprendedores de Umbrete.
+          </p>
+
+          <ul class="event-list">
+            <li>📅 11 de junio de 2026</li>
+            <li>🕗 Desde las 20:00 h</li>
+            <li>📍 Salones José Benítez</li>
+            <li>🥂 Aperitivo incluido</li>
+          </ul>
 
           <a
-            class="primary-link"
-            href="https://forms.gle/Ymt5uzbcZYgbjqP46"
+            href="https://docs.google.com/forms/d/e/1FAIpQLSc9ysV5NC-ecxmV6CCBwLTR2VxdeWZ6gZgtYrurttKfBtrymQ/viewform"
             target="_blank"
-            rel="noopener"
+            class="reserve-btn"
           >
-            🚀 Quiero asociarme
+            ✅ Reservar plaza
           </a>
-
-          <button
-            id="showLoginBtn"
-            type="button"
-            class="secondary-btn"
-          >
-            🔐 Acceso asociados
-          </button>
 
         </div>
 
       </div>
 
+      <!-- BOTONES -->
+      <div class="public-actions">
+
+        <a
+          class="primary-link"
+          href="https://forms.gle/Ymt5uzbcZYgbjqP46"
+          target="_blank"
+          rel="noopener"
+        >
+          🚀 Quiero asociarme
+        </a>
+
+        <button
+          id="showLoginBtn"
+          type="button"
+          class="secondary-btn"
+        >
+          🔐 Acceso asociados
+        </button>
+
+      </div>
+
+      <!-- BLOQUES -->
       <div class="public-grid">
 
         <div class="public-card">
@@ -135,8 +138,8 @@
           <h3>🎓 Formación e información</h3>
 
           <p>
-            Jornadas, ayudas, convocatorias y herramientas útiles
-            para el día a día empresarial.
+            Jornadas, ayudas, convocatorias, recursos
+            y herramientas útiles para el día a día empresarial.
           </p>
         </div>
 
@@ -144,21 +147,20 @@
           <h3>💼 Bolsa de trabajo</h3>
 
           <p>
-            Publica ofertas, encuentra perfiles y crea oportunidades
-            laborales dentro del entorno local.
+            Publica ofertas, encuentra perfiles
+            y crea oportunidades laborales dentro del entorno local.
           </p>
         </div>
 
       </div>
 
+      <!-- LISTA -->
       <div class="intro-box public-list">
-
         ✔️ Información para asociados<br />
         ✔️ Convocatorias y actas<br />
         ✔️ Bolsa de trabajo<br />
         ✔️ Colaboraciones empresariales<br />
         ✔️ Futuro marketplace local
-
       </div>
 
     </section>
@@ -171,25 +173,18 @@
       <form id="loginForm" class="login-form">
 
         <div>
-
-          <label for="email">
-            Correo electrónico
-          </label>
+          <label for="email">Correo electrónico</label>
 
           <input
             type="email"
             id="email"
-            placeholder="pacoparejo@asume.net"
+            placeholder="asociado@asume.net"
             required
           />
-
         </div>
 
         <div>
-
-          <label for="password">
-            Contraseña
-          </label>
+          <label for="password">Contraseña</label>
 
           <input
             type="password"
@@ -197,7 +192,6 @@
             placeholder="Tu contraseña"
             required
           />
-
         </div>
 
         <button type="submit">
@@ -208,18 +202,9 @@
 
       <div class="top-actions">
 
-        <button
-          id="backToHomeBtn"
-          type="button"
-          class="secondary-btn"
-        >
+        <button id="backToHomeBtn" type="button" class="secondary-btn">
           ⬅ Volver al inicio
         </button>
-
-      </div>
-
-      <!-- RESET PASSWORD -->
-      <div class="reset-box">
 
         <button
           id="showResetFormBtn"
@@ -229,27 +214,24 @@
           🔑 Solicitar contraseña nueva
         </button>
 
-        <form
-          id="resetForm"
-          class="hidden reset-form"
-        >
+      </div>
 
-          <label for="resetEmail">
-            Introduce tu correo electrónico
-          </label>
+      <!-- RESET -->
+      <div id="resetBox" class="hidden reset-box">
 
-          <input
-            type="email"
-            id="resetEmail"
-            placeholder="tuemail@empresa.com"
-            required
-          />
+        <label for="resetEmail">
+          Introduce tu correo electrónico
+        </label>
 
-          <button type="submit">
-            Enviar solicitud
-          </button>
+        <input
+          type="email"
+          id="resetEmail"
+          placeholder="correo@empresa.com"
+        />
 
-        </form>
+        <button id="sendResetBtn">
+          Enviar solicitud
+        </button>
 
       </div>
 
@@ -257,7 +239,7 @@
 
     </div>
 
-    <!-- ZONA PRIVADA -->
+    <!-- PRIVADA -->
     <div id="welcomeSection" class="welcome hidden">
 
       <h2>Bienvenido a ASUME</h2>
@@ -279,11 +261,9 @@
           <h3 id="viewTitle">Dashboard</h3>
 
           <div id="viewContent">
-
             <p>
               Selecciona una opción del panel para empezar.
             </p>
-
           </div>
 
         </div>
@@ -292,17 +272,11 @@
 
       <div class="top-actions">
 
-        <button
-          id="homeBtn"
-          class="secondary-btn"
-        >
+        <button id="homeBtn" class="secondary-btn">
           Inicio
         </button>
 
-        <button
-          id="logoutBtn"
-          class="secondary-btn"
-        >
+        <button id="logoutBtn" class="secondary-btn">
           Cerrar sesión
         </button>
 
@@ -311,7 +285,6 @@
     </div>
 
     <p class="footer">
-
       Creado por
 
       <a
@@ -324,7 +297,6 @@
       </a>
 
       😏
-
     </p>
 
   </div>
