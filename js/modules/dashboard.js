@@ -14,19 +14,25 @@ export async function renderDashboard() {
   `;
 
   // ===============================
-  // CARGAR ASOCIADOS
+  // CARGAR DATOS
   // ===============================
 
-  const { data: asociados, error } = await supabase
+  const { data: asociados, error: errorAsociados } = await supabase
     .from('asociados')
     .select('*')
     .order('id', { ascending: false });
 
-  if (error) {
+  const { data: ofertas } = await supabase
+    .from('ofertas_empleo')
+    .select('*')
+    .neq('estado', 'eliminada')
+    .order('created_at', { ascending: false });
+
+  if (errorAsociados) {
 
     viewContent.innerHTML = `
-      <div class="error">
-        Error cargando dashboard
+      <div class="message error">
+        Error cargando dashboard: ${errorAsociados.message}
       </div>
     `;
 
@@ -37,114 +43,192 @@ export async function renderDashboard() {
   // MÉTRICAS
   // ===============================
 
-  const total = asociados.length;
+  const listaAsociados = asociados || [];
+  const listaOfertas = ofertas || [];
 
-  const activos = asociados.filter(
+  const total = listaAsociados.length;
+
+  const activos = listaAsociados.filter(
     a => a.estado === 'activo'
   ).length;
 
-  const pendientes = asociados.filter(
+  const pendientes = listaAsociados.filter(
     a => a.estado === 'pendiente'
   ).length;
 
-  const bajas = asociados.filter(
-    a => a.estado === 'baja'
+  const ofertasActivas = listaOfertas.filter(
+    o => o.estado === 'activa'
   ).length;
 
   // ===============================
   // ÚLTIMOS ASOCIADOS
   // ===============================
 
-  const ultimos = asociados.slice(0, 5);
+  const ultimos = listaAsociados.slice(0, 5);
 
   // ===============================
-  // HTML
+  // RENDER
   // ===============================
 
   viewContent.innerHTML = `
 
+    <!-- HERO -->
+
+    <div class="dashboard-hero">
+
+      <div>
+
+        <span class="dashboard-kicker">
+          Panel principal
+        </span>
+
+        <h2>
+          Centro de actividad de ASUME
+        </h2>
+
+        <p>
+          Resumen rápido del estado de la asociación,
+          próximos eventos, asociados registrados
+          y actividad empresarial local.
+        </p>
+
+      </div>
+
+      <a
+        class="dashboard-main-cta"
+        href="https://docs.google.com/forms/d/e/1FAIpQLSc9ysV5NC-ecxmV6CCBwLTR2VxdeWZ6gZgtYrurttKfBtrymQ/viewform"
+        target="_blank"
+        rel="noopener"
+      >
+        🎟 Reservar plaza
+      </a>
+
+    </div>
+
+
+    <!-- ESTADÍSTICAS -->
+
     <div class="dashboard-grid">
 
       <div class="dashboard-stat">
-        <div class="dashboard-number">
+
+        <span>👥</span>
+
+        <strong>
           ${total}
-        </div>
+        </strong>
 
-        <div class="dashboard-label">
+        <p>
           Asociados totales
-        </div>
+        </p>
+
       </div>
 
       <div class="dashboard-stat">
-        <div class="dashboard-number success-color">
+
+        <span>✅</span>
+
+        <strong class="success-color">
           ${activos}
-        </div>
+        </strong>
 
-        <div class="dashboard-label">
+        <p>
           Asociados activos
-        </div>
+        </p>
+
       </div>
 
       <div class="dashboard-stat">
-        <div class="dashboard-number warning-color">
+
+        <span>⏳</span>
+
+        <strong class="warning-color">
           ${pendientes}
-        </div>
+        </strong>
 
-        <div class="dashboard-label">
+        <p>
           Pendientes
-        </div>
+        </p>
+
       </div>
 
       <div class="dashboard-stat">
-        <div class="dashboard-number danger-color">
-          ${bajas}
-        </div>
 
-        <div class="dashboard-label">
-          Bajas
-        </div>
+        <span>💼</span>
+
+        <strong>
+          ${ofertasActivas}
+        </strong>
+
+        <p>
+          Ofertas activas
+        </p>
+
       </div>
 
     </div>
 
-    <div class="dashboard-panels">
+
+    <!-- CONTENIDO -->
+
+    <div class="dashboard-layout">
+
 
       <!-- EVENTO -->
-      <div class="dashboard-box">
 
-        <h3>
-          🚀 Próximo evento ASUME
-        </h3>
+      <div class="dashboard-box dashboard-event-box">
 
-        <div class="event-mini">
+        <div class="dashboard-box-head">
+
+          <span>
+            🚀 Evento destacado
+          </span>
+
+          <strong>
+            11 junio 2026
+          </strong>
+
+        </div>
+
+        <div class="dashboard-event">
 
           <img
             src="./img/evento-asume-junio.jpg"
-            alt="Evento ASUME"
-            class="event-mini-image"
+            alt="Presentación oficial ASUME"
           />
 
-          <div class="event-mini-info">
+          <div>
 
-            <h4>
-              Presentación Oficial ASUME
-            </h4>
-
-            <p>
-              📅 11 de junio de 2026
-            </p>
+            <h3>
+              Presentación Oficial de ASUME
+            </h3>
 
             <p>
-              📍 Salones José Benítez
+              Encuentro abierto para empresarios,
+              autónomos, comerciantes, emprendedores
+              y vecinos de Umbrete.
             </p>
 
-            <p>
-              🥂 Aperitivo incluido
-            </p>
+            <div class="dashboard-event-tags">
+
+              <span>
+                📍 Salones José Benítez
+              </span>
+
+              <span>
+                🕗 Desde las 20:00 h
+              </span>
+
+              <span>
+                🥂 Aperitivo incluido
+              </span>
+
+            </div>
 
             <a
               href="https://docs.google.com/forms/d/e/1FAIpQLSc9ysV5NC-ecxmV6CCBwLTR2VxdeWZ6gZgtYrurttKfBtrymQ/viewform"
               target="_blank"
+              rel="noopener"
               class="dashboard-link"
             >
               Reservar plaza
@@ -156,66 +240,127 @@ export async function renderDashboard() {
 
       </div>
 
+
       <!-- ÚLTIMOS ASOCIADOS -->
+
       <div class="dashboard-box">
 
-        <h3>
-          🏢 Últimos asociados
-        </h3>
+        <div class="dashboard-box-head">
+
+          <span>
+            🏢 Últimos asociados
+          </span>
+
+        </div>
 
         <div class="dashboard-list">
 
           ${
-            ultimos.map(asociado => `
-              <div class="dashboard-list-item">
+            ultimos.length
+              ? ultimos.map(asociado => `
 
-                <strong>
-                  ${asociado.empresa || 'Empresa'}
-                </strong>
+                <div class="dashboard-list-item">
 
-                <span>
-                  ${asociado.contacto || ''}
-                </span>
+                  <strong>
+                    ${asociado.empresa || asociado.contacto || 'Asociado'}
+                  </strong>
 
-              </div>
-            `).join('')
+                  <span>
+                    ${asociado.contacto || asociado.email || 'Sin contacto indicado'}
+                  </span>
+
+                </div>
+
+              `).join('')
+              : `
+                <p class="dashboard-empty">
+                  Todavía no hay asociados registrados.
+                </p>
+              `
           }
 
         </div>
 
       </div>
 
+
       <!-- ESTADO -->
+
       <div class="dashboard-box">
 
-        <h3>
-          📢 Estado del proyecto
-        </h3>
+        <div class="dashboard-box-head">
+
+          <span>
+            📢 Estado del proyecto
+          </span>
+
+        </div>
 
         <ul class="dashboard-ul">
-          <li>✅ Plataforma online activa</li>
-          <li>✅ Sistema de login operativo</li>
-          <li>✅ Gestión de asociados</li>
-          <li>✅ Archivo histórico</li>
-          <li>🚧 Marketplace local</li>
-          <li>🚧 Bolsa de empleo avanzada</li>
-          <li>🚧 CRM institucional</li>
+
+          <li>
+            ✅ Plataforma online activa
+          </li>
+
+          <li>
+            ✅ Login de asociados operativo
+          </li>
+
+          <li>
+            ✅ Gestión de asociados
+          </li>
+
+          <li>
+            ✅ Archivo histórico
+          </li>
+
+          <li>
+            🚧 Dashboard avanzado
+          </li>
+
+          <li>
+            🚧 Marketplace local
+          </li>
+
         </ul>
 
       </div>
 
+
       <!-- NOVEDADES -->
+
       <div class="dashboard-box">
 
-        <h3>
-          ✨ Novedades
-        </h3>
+        <div class="dashboard-box-head">
+
+          <span>
+            ✨ Próximas mejoras
+          </span>
+
+        </div>
 
         <ul class="dashboard-ul">
-          <li>Nuevo diseño responsive</li>
-          <li>Evento oficial integrado</li>
-          <li>Solicitud de contraseña móvil</li>
-          <li>Preparado para crecimiento modular</li>
+
+          <li>
+            📌 Avisos internos para asociados
+          </li>
+
+          <li>
+            📄 Documentos y actas
+          </li>
+
+          <li>
+            💳 Cuotas y remesas
+          </li>
+
+          <li>
+            🤝 Tareas Junta Directiva
+          </li>
+
+          <li>
+            🛒 Catálogo local de empresas
+          </li>
+
         </ul>
 
       </div>
