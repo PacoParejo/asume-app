@@ -9,6 +9,7 @@ import { renderAsociadosView } from './modules/asociados.js';
 import { renderArchivoView } from './modules/archivo.js';
 import { renderBolsaView } from './modules/bolsa.js';
 import { renderMisDatos } from './modules/mis-datos.js';
+import { renderDashboard } from './modules/dashboard.js';
 
 // ===============================
 // REFERENCIAS DOM
@@ -122,7 +123,7 @@ function renderMenu(role) {
 // ===============================
 async function openView(key) {
   if (key === 'dashboard') {
-    setView('Dashboard', '<p>Panel principal</p>');
+    await renderDashboard();
     return;
   }
 
