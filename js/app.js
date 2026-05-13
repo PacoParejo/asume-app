@@ -15,31 +15,54 @@ import { renderDashboard } from './modules/dashboard.js';
 // REFERENCIAS DOM
 // ===============================
 const publicSection = document.getElementById('publicSection');
-const showLoginBtn = document.getElementById('showLoginBtn');
-const backToHomeBtn = document.getElementById('backToHomeBtn');
 
-const loginForm = document.getElementById('loginForm');
-const message = document.getElementById('message');
+const showLoginBtn =
+  document.getElementById('showLoginBtn');
 
-const loginSection = document.getElementById('loginSection');
-const welcomeSection = document.getElementById('welcomeSection');
+const backToHomeBtn =
+  document.getElementById('backToHomeBtn');
 
-const userInfo = document.getElementById('userInfo');
-const logoutBtn = document.getElementById('logoutBtn');
-const homeBtn = document.getElementById('homeBtn');
+const loginForm =
+  document.getElementById('loginForm');
 
-const roleBadge = document.getElementById('roleBadge');
-const roleSummary = document.getElementById('roleSummary');
+const message =
+  document.getElementById('message');
 
-const menuButtons = document.getElementById('menuButtons');
+const loginSection =
+  document.getElementById('loginSection');
 
-const viewTitle = document.getElementById('viewTitle');
-const viewContent = document.getElementById('viewContent');
+const welcomeSection =
+  document.getElementById('welcomeSection');
+
+const userInfo =
+  document.getElementById('userInfo');
+
+const logoutBtn =
+  document.getElementById('logoutBtn');
+
+const homeBtn =
+  document.getElementById('homeBtn');
+
+const roleBadge =
+  document.getElementById('roleBadge');
+
+const roleSummary =
+  document.getElementById('roleSummary');
+
+const menuButtons =
+  document.getElementById('menuButtons');
+
+const viewTitle =
+  document.getElementById('viewTitle');
+
+const viewContent =
+  document.getElementById('viewContent');
 
 // ===============================
-// UI BÁSICA
+// UI
 // ===============================
 function showMessage(text, type = '') {
+
   message.textContent = text;
   message.className = 'message';
 
@@ -49,9 +72,8 @@ function showMessage(text, type = '') {
 }
 
 function showPublic() {
-  if (publicSection) {
-    publicSection.classList.remove('hidden');
-  }
+
+  publicSection?.classList.remove('hidden');
 
   loginSection.classList.add('hidden');
   welcomeSection.classList.add('hidden');
@@ -60,26 +82,27 @@ function showPublic() {
 }
 
 function showLogin() {
-  if (publicSection) {
-    publicSection.classList.add('hidden');
-  }
+
+  publicSection?.classList.add('hidden');
 
   welcomeSection.classList.add('hidden');
+
   loginSection.classList.remove('hidden');
 
   showMessage('');
 }
 
 function showWelcomeShell() {
-  if (publicSection) {
-    publicSection.classList.add('hidden');
-  }
+
+  publicSection?.classList.add('hidden');
 
   loginSection.classList.add('hidden');
+
   welcomeSection.classList.remove('hidden');
 }
 
 function setView(title, html) {
+
   viewTitle.textContent = title;
   viewContent.innerHTML = html;
 }
@@ -88,6 +111,7 @@ function setView(title, html) {
 // ROLES
 // ===============================
 function getRoleSummary(role) {
+
   const map = {
     superadmin: 'Acceso total activado.',
     presidente: 'Panel de Presidencia.',
@@ -101,19 +125,45 @@ function getRoleSummary(role) {
 }
 
 function getMenuForRole(role) {
+
   const menus = {
+
     superadmin: [
-      { key: 'dashboard', label: '🏠 Dashboard' },
-      { key: 'misdatos', label: '👤 Mis datos' },
-      { key: 'asociados', label: '🏢 Asociados' },
-      { key: 'archivo', label: '🗃️ Archivo' },
-      { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
+      {
+        key: 'dashboard',
+        label: '🏠 Dashboard'
+      },
+      {
+        key: 'misdatos',
+        label: '👤 Mis datos'
+      },
+      {
+        key: 'asociados',
+        label: '🏢 Asociados'
+      },
+      {
+        key: 'archivo',
+        label: '🗃️ Archivo'
+      },
+      {
+        key: 'bolsa',
+        label: '💼 Bolsa de Trabajo'
+      }
     ],
 
     asociado: [
-      { key: 'dashboard', label: '🏠 Dashboard' },
-      { key: 'misdatos', label: '👤 Mis datos' },
-      { key: 'bolsa', label: '💼 Bolsa de Trabajo' }
+      {
+        key: 'dashboard',
+        label: '🏠 Dashboard'
+      },
+      {
+        key: 'misdatos',
+        label: '👤 Mis datos'
+      },
+      {
+        key: 'bolsa',
+        label: '💼 Bolsa de Trabajo'
+      }
     ]
   };
 
@@ -121,18 +171,23 @@ function getMenuForRole(role) {
 }
 
 function renderMenu(role) {
+
   const items = getMenuForRole(role);
 
   menuButtons.innerHTML = '';
 
   items.forEach(item => {
-    const btn = document.createElement('button');
+
+    const btn =
+      document.createElement('button');
 
     btn.className = 'menu-btn';
     btn.textContent = item.label;
 
     btn.addEventListener('click', async () => {
+
       await openView(item.key);
+
     });
 
     menuButtons.appendChild(btn);
@@ -145,26 +200,31 @@ function renderMenu(role) {
 async function openView(key) {
 
   if (key === 'dashboard') {
+
     await renderDashboard();
     return;
   }
 
   if (key === 'misdatos') {
+
     await renderMisDatos();
     return;
   }
 
   if (key === 'asociados') {
+
     await renderAsociadosView();
     return;
   }
 
   if (key === 'archivo') {
+
     await renderArchivoView();
     return;
   }
 
   if (key === 'bolsa') {
+
     await renderBolsaView();
     return;
   }
@@ -179,34 +239,47 @@ async function openView(key) {
 // BOTONES PÚBLICOS
 // ===============================
 showLoginBtn?.addEventListener('click', () => {
+
   showLogin();
+
 });
 
 backToHomeBtn?.addEventListener('click', () => {
+
   showPublic();
+
 });
 
 // ===============================
 // LOGIN
 // ===============================
 loginForm?.addEventListener('submit', async (e) => {
+
   e.preventDefault();
 
-  const email = document
-    .getElementById('email')
-    .value
-    .trim();
+  const email =
+    document
+      .getElementById('email')
+      .value
+      .trim();
 
-  const password = document
-    .getElementById('password')
-    .value;
+  const password =
+    document
+      .getElementById('password')
+      .value;
 
   showMessage('Entrando...');
 
-  const { data, error } = await login(email, password);
+  const { data, error } =
+    await login(email, password);
 
   if (error) {
-    showMessage(error.message, 'error');
+
+    showMessage(
+      error.message,
+      'error'
+    );
+
     return;
   }
 
@@ -220,7 +293,8 @@ async function showWelcome(user) {
 
   showWelcomeShell();
 
-  const profile = await getUserProfile(user.id);
+  const profile =
+    await getUserProfile(user.id);
 
   const email =
     profile?.data?.email || user.email;
@@ -244,15 +318,20 @@ async function showWelcome(user) {
 
 async function checkSession() {
 
-  const { data } = await getSession();
+  const { data } =
+    await getSession();
 
   if (
     data.session &&
     data.session.user
   ) {
-    await showWelcome(data.session.user);
+
+    await showWelcome(
+      data.session.user
+    );
 
   } else {
+
     showPublic();
   }
 }
@@ -260,62 +339,86 @@ async function checkSession() {
 // ===============================
 // LOGOUT
 // ===============================
-logoutBtn?.addEventListener('click', async () => {
-  await logout();
-  showPublic();
-});
+logoutBtn?.addEventListener(
+  'click',
+  async () => {
 
-homeBtn?.addEventListener('click', async () => {
-  await openView('dashboard');
-});
+    await logout();
 
-// ===============================
-// SOLICITAR NUEVA CONTRASEÑA
-// ===============================
-document.addEventListener('click', (e) => {
-
-  // MOSTRAR / OCULTAR FORMULARIO
-  if (
-    e.target &&
-    e.target.id === 'showResetFormBtn'
-  ) {
-
-    e.preventDefault();
-
-    const resetBox =
-      document.getElementById('resetBox');
-
-    if (resetBox) {
-      resetBox.classList.toggle('hidden');
-    }
+    showPublic();
   }
+);
 
-  // ENVIAR SOLICITUD
-  if (
-    e.target &&
-    e.target.id === 'sendResetBtn'
-  ) {
+homeBtn?.addEventListener(
+  'click',
+  async () => {
 
-    e.preventDefault();
+    await openView('dashboard');
+  }
+);
 
-    const resetEmail =
-      document.getElementById('resetEmail');
+// ===============================
+// RECUPERAR CONTRASEÑA
+// ===============================
+document.addEventListener(
+  'click',
+  (e) => {
 
-    const email =
-      resetEmail?.value.trim();
+    // MOSTRAR FORMULARIO
+    if (
+      e.target &&
+      e.target.id ===
+        'showResetFormBtn'
+    ) {
 
-    if (!email) {
-      alert(
-        'Introduce tu correo electrónico.'
-      );
-      return;
+      e.preventDefault();
+
+      const resetBox =
+        document.getElementById(
+          'resetBox'
+        );
+
+      if (resetBox) {
+
+        resetBox.classList.toggle(
+          'hidden'
+        );
+      }
     }
 
-    const subject = encodeURIComponent(
-      'Solicitud de nueva contraseña ASUME'
-    );
+    // ENVIAR SOLICITUD
+    if (
+      e.target &&
+      e.target.id ===
+        'sendResetBtn'
+    ) {
 
-    const body = encodeURIComponent(
+      e.preventDefault();
+
+      const resetEmail =
+        document.getElementById(
+          'resetEmail'
+        );
+
+      const email =
+        resetEmail?.value.trim();
+
+      if (!email) {
+
+        alert(
+          'Introduce tu correo electrónico.'
+        );
+
+        return;
+      }
+
+      const subject =
+        encodeURIComponent(
+          'Solicitud de nueva contraseña ASUME'
+        );
+
+      const body =
+        encodeURIComponent(
 `Hola,
 
 Solicito una nueva contraseña para acceder a ASUME.
@@ -324,14 +427,34 @@ Correo asociado:
 ${email}
 
 Gracias.`
-    );
+        );
 
-    const gmailUrl =
-      `https://mail.google.com/mail/?view=cm&fs=1&to=globaltum@gmail.com&su=${subject}&body=${body}`;
+      const isMobile =
+        /Android|iPhone|iPad|iPod/i.test(
+          navigator.userAgent
+        );
 
-    window.open(gmailUrl, '_blank');
+      const mailtoUrl =
+        `mailto:globaltum@gmail.com?subject=${subject}&body=${body}`;
+
+      const gmailUrl =
+        `https://mail.google.com/mail/?view=cm&fs=1&to=globaltum@gmail.com&su=${subject}&body=${body}`;
+
+      if (isMobile) {
+
+        window.location.href =
+          mailtoUrl;
+
+      } else {
+
+        window.open(
+          gmailUrl,
+          '_blank'
+        );
+      }
+    }
   }
-});
+);
 
 // ===============================
 // INIT
