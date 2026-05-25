@@ -241,7 +241,10 @@ async function showWelcome(user) {
   const profile = await getUserProfile(user.id);
 
   const email = profile?.data?.email || user.email;
-  const role = profile?.data?.role || 'asociado';
+const role =
+  (profile?.data?.role || 'asociado')
+    .trim()
+    .toLowerCase();
 
   userInfo.textContent = `Has iniciado sesión como: ${email}`;
   roleBadge.textContent = `Rol: ${role}`;
