@@ -769,3 +769,72 @@ input:focus {
     max-width: 320px;
   }
 }
+/* ===============================
+   AVISOS INTERNOS
+=============================== */
+
+.avisos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.aviso-card {
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid #334155;
+  background: rgba(15, 23, 42, 0.75);
+  text-align: left;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+}
+
+.aviso-destacado {
+  border-color: #38bdf8;
+  background:
+    linear-gradient(135deg, rgba(56,189,248,0.14), rgba(15,23,42,0.85));
+}
+
+.aviso-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.aviso-tipo,
+.aviso-star {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.aviso-tipo {
+  background: rgba(56,189,248,0.14);
+  color: #7dd3fc;
+  border: 1px solid rgba(56,189,248,0.3);
+}
+
+.aviso-star {
+  background: rgba(250,204,21,0.14);
+  color: #fde047;
+  border: 1px solid rgba(250,204,21,0.3);
+}
+
+.aviso-card h3 {
+  margin-bottom: 12px;
+  color: #38bdf8;
+}
+
+.aviso-card p {
+  color: #e2e8f0;
+  line-height: 1.7;
+}
+
+.aviso-card small {
+  display: block;
+  margin-top: 16px;
+  color: #94a3b8;
+}
