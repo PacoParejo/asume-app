@@ -838,3 +838,123 @@ input:focus {
   margin-top: 16px;
   color: #94a3b8;
 }
+/* ===================================
+   FORMULARIOS PRO ASUME
+=================================== */
+
+.form-card {
+  padding: 24px;
+  margin-top: 20px;
+  border-radius: 18px;
+  border: 1px solid #334155;
+  background: rgba(15,23,42,0.75);
+}
+
+.form-card h3 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  color: #ffffff;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.form-grid label {
+  display: block;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #475569;
+  background: #0b1220;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.form-grid textarea {
+  resize: vertical;
+  min-height: 160px;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56,189,248,0.2);
+}
+
+.form-grid select option {
+  background: #0b1220;
+  color: white;
+}
+
+/* ===================================
+   PRIORIDADES AVISOS
+=================================== */
+
+.aviso-prioridad {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.aviso-prioridad-normal {
+  border-left: 4px solid #38bdf8;
+}
+
+.aviso-prioridad-importante {
+  border-left: 4px solid #f59e0b;
+}
+
+.aviso-prioridad-critica {
+  border-left: 4px solid #ef4444;
+}
+
+/* ===================================
+   CADUCADOS
+=================================== */
+
+.aviso-caducado {
+  opacity: .65;
+}
+
+.aviso-caducidad-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(239,68,68,.15);
+  color: #f87171;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* ===================================
+   RESPONSIVE
+=================================== */
+
+@media (max-width: 700px) {
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .full-width {
+    grid-column: auto;
+  }
+
+}
