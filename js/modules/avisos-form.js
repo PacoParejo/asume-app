@@ -1,62 +1,87 @@
 import { supabase } from '../supabase.js';
 
-export function getAvisoFormHTML() {
+export function getAvisoFormHTML(aviso = null) {
+  const editando = Boolean(aviso);
+
   return `
-    <div class="form-card">
-      <h3>Nuevo aviso</h3>
+    <div class="form-card aviso-form-card">
+      <h3>${editando ? 'Editar aviso' : 'Nuevo aviso'}</h3>
 
       <form id="avisoForm">
+        <input
+          type="hidden"
+          id="aviso_id"
+          value="${aviso?.id || ''}"
+        />
+
         <div class="form-grid">
 
-          <div>
+          <div class="full-width">
             <label>Título *</label>
-            <input type="text" id="aviso_titulo" required />
+            <input
+              type="text"
+              id="aviso_titulo"
+              required
+              value="${aviso?.titulo || ''}"
+            />
           </div>
 
           <div>
             <label>Tipo</label>
             <select id="aviso_tipo">
-              <option value="aviso">📢 Aviso</option>
-              <option value="noticia">📰 Noticia</option>
-              <option value="evento">📅 Evento</option>
-              <option value="formacion">🎓 Formación</option>
-              <option value="oportunidad">💼 Oportunidad</option>
-              <option value="subvencion">💰 Subvención</option>
-              <option value="urgente">⚠️ Urgente</option>
+              <option value="aviso" ${aviso?.tipo === 'aviso' ? 'selected' : ''}>📢 Aviso</option>
+              <option value="noticia" ${aviso?.tipo === 'noticia' ? 'selected' : ''}>📰 Noticia</option>
+              <option value="evento" ${aviso?.tipo === 'evento' ? 'selected' : ''}>📅 Evento</option>
+              <option value="formacion" ${aviso?.tipo === 'formacion' ? 'selected' : ''}>🎓 Formación</option>
+              <option value="oportunidad" ${aviso?.tipo === 'oportunidad' ? 'selected' : ''}>💼 Oportunidad</option>
+              <option value="subvencion" ${aviso?.tipo === 'subvencion' ? 'selected' : ''}>💰 Subvención</option>
+              <option value="urgente" ${aviso?.tipo === 'urgente' ? 'selected' : ''}>⚠️ Urgente</option>
             </select>
           </div>
 
           <div>
             <label>Prioridad</label>
             <select id="aviso_prioridad">
-              <option value="normal">Normal</option>
-              <option value="importante">Importante</option>
-              <option value="critica">Crítica</option>
+              <option value="normal" ${aviso?.prioridad === 'normal' ? 'selected' : ''}>Normal</option>
+              <option value="importante" ${aviso?.prioridad === 'importante' ? 'selected' : ''}>Importante</option>
+              <option value="critica" ${aviso?.prioridad === 'critica' ? 'selected' : ''}>Crítica</option>
             </select>
           </div>
 
           <div>
             <label>Destinatario</label>
             <select id="aviso_destinatario">
-              <option value="todos">Todos</option>
-              <option value="asociados">Asociados</option>
-              <option value="junta">Junta Directiva</option>
-              <option value="presidencia">Presidencia</option>
-              <option value="tesoreria">Tesorería</option>
-              <option value="secretaria">Secretaría</option>
+              <option value="todos" ${aviso?.destinatario === 'todos' ? 'selected' : ''}>Todos</option>
+              <option value="asociados" ${aviso?.destinatario === 'asociados' ? 'selected' : ''}>Asociados</option>
+              <option value="junta" ${aviso?.destinatario === 'junta' ? 'selected' : ''}>Junta Directiva</option>
+              <option value="presidencia" ${aviso?.destinatario === 'presidencia' ? 'selected' : ''}>Presidencia</option>
+              <option value="tesoreria" ${aviso?.destinatario === 'tesoreria' ? 'selected' : ''}>Tesorería</option>
+              <option value="secretaria" ${aviso?.destinatario === 'secretaria' ? 'selected' : ''}>Secretaría</option>
             </select>
           </div>
 
           <div>
             <label>Fecha de caducidad</label>
-            <input type="date" id="aviso_fecha_caducidad" />
+            <input
+              type="date"
+              id="aviso_fecha_caducidad"
+              value="${aviso?.fecha_caducidad || ''}"
+            />
           </div>
 
           <div>
             <label>Destacado</label>
             <select id="aviso_destacado">
-              <option value="false">No</option>
-              <option value="true">Sí</option>
+              <option value="false" ${!aviso?.destacado ? 'selected' : ''}>No</option>
+              <option value="true" ${aviso?.destacado ? 'selected' : ''}>Sí</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Visible</label>
+            <select id="aviso_visible">
+              <option value="true" ${aviso?.visible !== false ? 'selected' : ''}>Sí</option>
+              <option value="false" ${aviso?.visible === false ? 'selected' : ''}>No</option>
             </select>
           </div>
 
@@ -66,18 +91,33 @@ export function getAvisoFormHTML() {
               type="url"
               id="aviso_enlace"
               placeholder="https://..."
+              value="${aviso?.enlace || ''}"
             />
           </div>
 
           <div class="full-width">
             <label>Contenido *</label>
-            <textarea id="aviso_contenido" rows="5" required></textarea>
+            <textarea
+              id="aviso_contenido"
+              rows="6"
+              required
+            >${aviso?.contenido || ''}</textarea>
           </div>
 
         </div>
 
         <div class="top-actions" style="margin-top:16px;">
-          <button type="submit">Publicar aviso</button>
+          <button type="submit">
+            ${editando ? 'Guardar cambios' : 'Publicar aviso'}
+          </button>
+
+          <button
+            type="button"
+            id="cancelarAvisoBtn"
+            class="secondary-btn"
+          >
+            Cancelar
+          </button>
         </div>
       </form>
 
@@ -93,8 +133,10 @@ export function activarFormularioAviso(user, onSuccess) {
     e.preventDefault();
 
     const msg = document.getElementById('avisoMsg');
-    msg.textContent = 'Publicando aviso...';
+    msg.textContent = 'Guardando aviso...';
     msg.className = 'message';
+
+    const id = document.getElementById('aviso_id').value;
 
     const payload = {
       titulo: document.getElementById('aviso_titulo').value.trim(),
@@ -106,8 +148,7 @@ export function activarFormularioAviso(user, onSuccess) {
         document.getElementById('aviso_fecha_caducidad').value || null,
       enlace: document.getElementById('aviso_enlace').value.trim() || null,
       destacado: document.getElementById('aviso_destacado').value === 'true',
-      visible: true,
-      created_by: user?.id || null
+      visible: document.getElementById('aviso_visible').value === 'true'
     };
 
     if (!payload.titulo || !payload.contenido) {
@@ -116,17 +157,32 @@ export function activarFormularioAviso(user, onSuccess) {
       return;
     }
 
-    const { error } = await supabase
-      .from('avisos')
-      .insert([payload]);
+    let result;
 
-    if (error) {
-      msg.textContent = 'Error al publicar aviso: ' + error.message;
+    if (id) {
+      result = await supabase
+        .from('avisos')
+        .update(payload)
+        .eq('id', Number(id));
+    } else {
+      result = await supabase
+        .from('avisos')
+        .insert([{
+          ...payload,
+          created_by: user?.id || null
+        }]);
+    }
+
+    if (result.error) {
+      msg.textContent = 'Error al guardar aviso: ' + result.error.message;
       msg.className = 'message error';
       return;
     }
 
-    msg.textContent = 'Aviso publicado correctamente';
+    msg.textContent = id
+      ? 'Aviso actualizado correctamente'
+      : 'Aviso publicado correctamente';
+
     msg.className = 'message success';
 
     setTimeout(() => {
