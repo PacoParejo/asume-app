@@ -166,6 +166,13 @@ function getAvisosHTML(avisos = [], esSuperadmin = false) {
             ${esSuperadmin ? `
               <div class="table-actions" style="margin-top:14px;">
                 <button
+                  class="secondary-btn editarAvisoBtn"
+                  data-id="${aviso.id}"
+                >
+                  Editar
+                </button>
+
+                <button
                   class="secondary-btn toggleDestacadoAvisoBtn"
                   data-id="${aviso.id}"
                   data-destacado="${aviso.destacado}"
@@ -174,10 +181,18 @@ function getAvisosHTML(avisos = [], esSuperadmin = false) {
                 </button>
 
                 <button
-                  class="danger-btn ocultarAvisoBtn"
+                  class="secondary-btn toggleVisibleAvisoBtn"
+                  data-id="${aviso.id}"
+                  data-visible="${aviso.visible}"
+                >
+                  ${aviso.visible ? 'Ocultar' : 'Mostrar'}
+                </button>
+
+                <button
+                  class="danger-btn eliminarAvisoBtn"
                   data-id="${aviso.id}"
                 >
-                  Ocultar
+                  Eliminar
                 </button>
               </div>
             ` : ''}
@@ -218,6 +233,8 @@ export async function renderAvisosView() {
     return;
   }
 
+  const listaAvisos = avisos || [];
+
   setView('Avisos internos', `
     <div class="asociado-header">
       <div>
@@ -237,7 +254,7 @@ export async function renderAvisosView() {
 
     <div id="nuevoAvisoBox"></div>
 
-    ${getAvisosHTML(avisos || [], esSuperadmin)}
+    ${getAvisosHTML(listaAvisos, esSuperadmin)}
   `);
 
   document.getElementById('nuevoAvisoBtn')?.addEventListener('click', () => {
@@ -249,6 +266,36 @@ export async function renderAvisosView() {
 
     activarFormularioAviso(user, () => {
       renderAvisosView();
+    });
+
+    document.getElementById('cancelarAvisoBtn')?.addEventListener('click', () => {
+      box.innerHTML = '';
+    });
+  });
+
+  document.querySelectorAll('.editarAvisoBtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.id);
+      const aviso = listaAvisos.find(item => item.id === id);
+
+      const box = document.getElementById('nuevoAvisoBox');
+
+      if (!box || !aviso) return;
+
+      box.innerHTML = getAvisoFormHTML(aviso);
+
+      activarFormularioAviso(user, () => {
+        renderAvisosView();
+      });
+
+      document.getElementById('cancelarAvisoBtn')?.addEventListener('click', () => {
+        box.innerHTML = '';
+      });
+
+      box.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
     });
   });
 
@@ -271,21 +318,42 @@ export async function renderAvisosView() {
     });
   });
 
-  document.querySelectorAll('.ocultarAvisoBtn').forEach(btn => {
+  document.querySelectorAll('.toggleVisibleAvisoBtn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = Number(btn.dataset.id);
-
-      const ok = confirm('¿Seguro que quieres ocultar este aviso?');
-
-      if (!ok) return;
+      const visibleActual = btn.dataset.visible === 'true';
 
       const { error: updateError } = await supabase
         .from('avisos')
-        .update({ visible: false })
+        .update({ visible: !visibleActual })
         .eq('id', id);
 
       if (updateError) {
-        alert('Error al ocultar aviso: ' + updateError.message);
+        alert('Error al actualizar visibilidad: ' + updateError.message);
+        return;
+      }
+
+      renderAvisosView();
+    });
+  });
+
+  document.querySelectorAll('.eliminarAvisoBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+
+      const ok = confirm(
+        '¿Seguro que quieres eliminar definitivamente este aviso?'
+      );
+
+      if (!ok) return;
+
+      const { error: deleteError } = await supabase
+        .from('avisos')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        alert('Error al eliminar aviso: ' + deleteError.message);
         return;
       }
 
