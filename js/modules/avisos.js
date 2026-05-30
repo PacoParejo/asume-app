@@ -1,4 +1,8 @@
 import { supabase } from '../supabase.js';
+import {
+  getAvisoFormHTML,
+  activarFormularioAviso
+} from './avisos-form.js';
 
 function setView(title, html) {
   const viewTitle = document.getElementById('viewTitle');
@@ -22,7 +26,7 @@ async function getCurrentUserAndRole() {
 
   return {
     user,
-    role: profile?.role || 'asociado'
+    role: (profile?.role || 'asociado').trim().toLowerCase()
   };
 }
 
@@ -30,53 +34,53 @@ function safe(value) {
   return value || '';
 }
 
-function getAvisoFormHTML() {
-  return `
-    <div class="form-card">
-      <h3>Nuevo aviso</h3>
+function getTipoLabel(tipo) {
+  const map = {
+    aviso: '📢 Aviso',
+    noticia: '📰 Noticia',
+    evento: '📅 Evento',
+    formacion: '🎓 Formación',
+    oportunidad: '💼 Oportunidad',
+    subvencion: '💰 Subvención',
+    urgente: '⚠️ Urgente'
+  };
 
-      <form id="avisoForm">
-        <div class="form-grid">
+  return map[tipo] || '📢 Aviso';
+}
 
-          <div>
-            <label>Título *</label>
-            <input type="text" id="aviso_titulo" required />
-          </div>
+function getPrioridadLabel(prioridad) {
+  const map = {
+    normal: 'Normal',
+    importante: 'Importante',
+    critica: 'Crítica'
+  };
 
-          <div>
-            <label>Tipo</label>
-            <select id="aviso_tipo">
-              <option value="aviso">Aviso</option>
-              <option value="evento">Evento</option>
-              <option value="subvencion">Subvención</option>
-              <option value="noticia">Noticia</option>
-              <option value="urgente">Urgente</option>
-            </select>
-          </div>
+  return map[prioridad] || 'Normal';
+}
 
-          <div class="full-width">
-            <label>Contenido *</label>
-            <textarea id="aviso_contenido" rows="5" required></textarea>
-          </div>
+function getDestinatarioLabel(destinatario) {
+  const map = {
+    todos: 'Todos',
+    asociados: 'Asociados',
+    junta: 'Junta Directiva',
+    presidencia: 'Presidencia',
+    tesoreria: 'Tesorería',
+    secretaria: 'Secretaría'
+  };
 
-          <div>
-            <label>Destacado</label>
-            <select id="aviso_destacado">
-              <option value="false">No</option>
-              <option value="true">Sí</option>
-            </select>
-          </div>
+  return map[destinatario] || 'Todos';
+}
 
-        </div>
+function isAvisoCaducado(aviso) {
+  if (!aviso.fecha_caducidad) return false;
 
-        <div class="top-actions" style="margin-top:16px;">
-          <button type="submit">Publicar aviso</button>
-        </div>
-      </form>
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
 
-      <div id="avisoMsg" class="message"></div>
-    </div>
-  `;
+  const caducidad = new Date(aviso.fecha_caducidad);
+  caducidad.setHours(0, 0, 0, 0);
+
+  return caducidad < hoy;
 }
 
 function getAvisosHTML(avisos = [], esSuperadmin = false) {
@@ -91,34 +95,95 @@ function getAvisosHTML(avisos = [], esSuperadmin = false) {
 
   return `
     <div class="avisos-grid">
-      ${avisos.map(aviso => `
-        <article class="aviso-card ${aviso.destacado ? 'aviso-destacado' : ''}">
-          <div class="aviso-top">
-            <span class="aviso-tipo">${safe(aviso.tipo)}</span>
-            ${aviso.destacado ? '<span class="aviso-star">⭐ Destacado</span>' : ''}
-          </div>
+      ${avisos.map(aviso => {
+        const caducado = isAvisoCaducado(aviso);
 
-          <h3>${safe(aviso.titulo)}</h3>
+        return `
+          <article class="
+            aviso-card
+            ${aviso.destacado ? 'aviso-destacado' : ''}
+            aviso-prioridad-${safe(aviso.prioridad)}
+            ${caducado ? 'aviso-caducado' : ''}
+          ">
 
-          <p>${safe(aviso.contenido)}</p>
+            <div class="aviso-top">
+              <span class="aviso-tipo">
+                ${getTipoLabel(aviso.tipo)}
+              </span>
 
-          <small>
-            ${aviso.created_at ? new Date(aviso.created_at).toLocaleString('es-ES') : ''}
-          </small>
+              <span class="aviso-prioridad">
+                ${getPrioridadLabel(aviso.prioridad)}
+              </span>
 
-          ${esSuperadmin ? `
-            <div class="table-actions" style="margin-top:14px;">
-              <button class="secondary-btn toggleDestacadoAvisoBtn" data-id="${aviso.id}" data-destacado="${aviso.destacado}">
-                ${aviso.destacado ? 'Quitar destacado' : 'Destacar'}
-              </button>
+              ${aviso.destacado ? `
+                <span class="aviso-star">
+                  ⭐ Destacado
+                </span>
+              ` : ''}
 
-              <button class="danger-btn ocultarAvisoBtn" data-id="${aviso.id}">
-                Ocultar
-              </button>
+              ${caducado ? `
+                <span class="aviso-caducidad-badge">
+                  ⏳ Caducado
+                </span>
+              ` : ''}
             </div>
-          ` : ''}
-        </article>
-      `).join('')}
+
+            <h3>${safe(aviso.titulo)}</h3>
+
+            <p>${safe(aviso.contenido)}</p>
+
+            <div class="aviso-meta">
+              <span>
+                👥 ${getDestinatarioLabel(aviso.destinatario)}
+              </span>
+
+              ${
+                aviso.fecha_caducidad
+                  ? `<span>📅 Caduca: ${new Date(aviso.fecha_caducidad).toLocaleDateString('es-ES')}</span>`
+                  : ''
+              }
+
+              <span>
+                🕒 ${aviso.created_at ? new Date(aviso.created_at).toLocaleString('es-ES') : ''}
+              </span>
+            </div>
+
+            ${
+              aviso.enlace
+                ? `
+                  <a
+                    href="${safe(aviso.enlace)}"
+                    target="_blank"
+                    rel="noopener"
+                    class="aviso-link"
+                  >
+                    🔗 Ver enlace
+                  </a>
+                `
+                : ''
+            }
+
+            ${esSuperadmin ? `
+              <div class="table-actions" style="margin-top:14px;">
+                <button
+                  class="secondary-btn toggleDestacadoAvisoBtn"
+                  data-id="${aviso.id}"
+                  data-destacado="${aviso.destacado}"
+                >
+                  ${aviso.destacado ? 'Quitar destacado' : 'Destacar'}
+                </button>
+
+                <button
+                  class="danger-btn ocultarAvisoBtn"
+                  data-id="${aviso.id}"
+                >
+                  Ocultar
+                </button>
+              </div>
+            ` : ''}
+          </article>
+        `;
+      }).join('')}
     </div>
   `;
 }
@@ -136,24 +201,36 @@ export async function renderAvisosView() {
     .order('created_at', { ascending: false });
 
   if (!esSuperadmin) {
-    query = query.eq('visible', true);
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    query = query
+      .eq('visible', true)
+      .or(`fecha_caducidad.is.null,fecha_caducidad.gte.${hoy}`);
   }
 
   const { data: avisos, error } = await query;
 
   if (error) {
-    setView('Avisos internos', `<p class="error">Error al cargar avisos: ${error.message}</p>`);
+    setView(
+      'Avisos internos',
+      `<p class="error">Error al cargar avisos: ${error.message}</p>`
+    );
     return;
   }
 
   setView('Avisos internos', `
     <div class="asociado-header">
       <div>
-        <p>Noticias, avisos y comunicaciones internas de ASUME.</p>
+        <p>
+          Noticias, avisos y comunicaciones internas de ASUME.
+        </p>
       </div>
+
       ${esSuperadmin ? `
         <div class="table-actions">
-          <button id="nuevoAvisoBtn">➕ Nuevo aviso</button>
+          <button id="nuevoAvisoBtn">
+            ➕ Nuevo aviso
+          </button>
         </div>
       ` : ''}
     </div>
@@ -165,40 +242,13 @@ export async function renderAvisosView() {
 
   document.getElementById('nuevoAvisoBtn')?.addEventListener('click', () => {
     const box = document.getElementById('nuevoAvisoBox');
+
+    if (!box) return;
+
     box.innerHTML = getAvisoFormHTML();
 
-    const form = document.getElementById('avisoForm');
-
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const msg = document.getElementById('avisoMsg');
-      msg.textContent = 'Publicando aviso...';
-      msg.className = 'message';
-
-      const payload = {
-        titulo: document.getElementById('aviso_titulo').value.trim(),
-        contenido: document.getElementById('aviso_contenido').value.trim(),
-        tipo: document.getElementById('aviso_tipo').value,
-        destacado: document.getElementById('aviso_destacado').value === 'true',
-        visible: true,
-        created_by: user?.id || null
-      };
-
-      const { error: insertError } = await supabase
-        .from('avisos')
-        .insert([payload]);
-
-      if (insertError) {
-        msg.textContent = 'Error al publicar aviso: ' + insertError.message;
-        msg.className = 'message error';
-        return;
-      }
-
-      msg.textContent = 'Aviso publicado correctamente';
-      msg.className = 'message success';
-
-      setTimeout(() => renderAvisosView(), 600);
+    activarFormularioAviso(user, () => {
+      renderAvisosView();
     });
   });
 
@@ -226,6 +276,7 @@ export async function renderAvisosView() {
       const id = Number(btn.dataset.id);
 
       const ok = confirm('¿Seguro que quieres ocultar este aviso?');
+
       if (!ok) return;
 
       const { error: updateError } = await supabase
