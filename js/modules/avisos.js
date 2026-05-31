@@ -99,9 +99,19 @@ function getAvisosHTML(avisos = [], esSuperadmin = false) {
             ${aviso.destacado ? '<span class="aviso-star">⭐ Destacado</span>' : ''}
           </div>
 
-          <h3>${safe(aviso.titulo)}</h3>
+${aviso.imagen_url ? `
+  <div class="aviso-image-wrap">
+    <img
+      src="${safe(aviso.imagen_url)}"
+      alt="${safe(aviso.titulo)}"
+      class="aviso-image"
+    />
+  </div>
+` : ''}
 
-          <p>${safe(aviso.contenido)}</p>
+<h3>${safe(aviso.titulo)}</h3>
+
+<p>${safe(aviso.contenido)}</p>
 
           <small>
             ${aviso.created_at ? new Date(aviso.created_at).toLocaleString('es-ES') : ''}
