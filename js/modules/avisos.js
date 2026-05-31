@@ -1,363 +1,237 @@
 import { supabase } from '../supabase.js';
-import {
-  getAvisoFormHTML,
-  activarFormularioAviso
-} from './avisos-form.js';
 
-function setView(title, html) {
-  const viewTitle = document.getElementById('viewTitle');
-  const viewContent = document.getElementById('viewContent');
+const BUCKET_AVISOS = 'avisos';
 
-  if (viewTitle) viewTitle.textContent = title;
-  if (viewContent) viewContent.innerHTML = html;
+function limpiarNombreArchivo(nombre) {
+  return nombre
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9.-]/g, '-')
+    .replace(/-+/g, '-');
 }
 
-async function getCurrentUserAndRole() {
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user || null;
+async function subirImagenAviso(file, userId) {
+  if (!file) return null;
 
-  if (!user) return { user: null, role: 'publico' };
+  const extension = file.name.split('.').pop();
+  const nombreLimpio = limpiarNombreArchivo(file.name);
+  const ruta = `${userId || 'anonimo'}/${Date.now()}-${nombreLimpio}`;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+  const { error } = await supabase
+    .storage
+    .from(BUCKET_AVISOS)
+    .upload(ruta, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
-  return {
-    user,
-    role: (profile?.role || 'asociado').trim().toLowerCase()
-  };
-}
-
-function safe(value) {
-  return value || '';
-}
-
-function getTipoLabel(tipo) {
-  const map = {
-    aviso: '📢 Aviso',
-    noticia: '📰 Noticia',
-    evento: '📅 Evento',
-    formacion: '🎓 Formación',
-    oportunidad: '💼 Oportunidad',
-    subvencion: '💰 Subvención',
-    urgente: '⚠️ Urgente'
-  };
-
-  return map[tipo] || '📢 Aviso';
-}
-
-function getPrioridadLabel(prioridad) {
-  const map = {
-    normal: 'Normal',
-    importante: 'Importante',
-    critica: 'Crítica'
-  };
-
-  return map[prioridad] || 'Normal';
-}
-
-function getDestinatarioLabel(destinatario) {
-  const map = {
-    todos: 'Todos',
-    asociados: 'Asociados',
-    junta: 'Junta Directiva',
-    presidencia: 'Presidencia',
-    tesoreria: 'Tesorería',
-    secretaria: 'Secretaría'
-  };
-
-  return map[destinatario] || 'Todos';
-}
-
-function isAvisoCaducado(aviso) {
-  if (!aviso.fecha_caducidad) return false;
-
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-
-  const caducidad = new Date(aviso.fecha_caducidad);
-  caducidad.setHours(0, 0, 0, 0);
-
-  return caducidad < hoy;
-}
-
-function getAvisosHTML(avisos = [], esSuperadmin = false) {
-  if (!avisos.length) {
-    return `
-      <div class="form-card">
-        <h3>Avisos internos</h3>
-        <p class="helper">Todavía no hay avisos publicados.</p>
-      </div>
-    `;
+  if (error) {
+    throw new Error(error.message);
   }
 
+  const { data } = supabase
+    .storage
+    .from(BUCKET_AVISOS)
+    .getPublicUrl(ruta);
+
+  return data.publicUrl;
+}
+
+export function getAvisoFormHTML(aviso = null) {
+  const editando = Boolean(aviso);
+
   return `
-    <div class="avisos-grid">
-      ${avisos.map(aviso => {
-        const caducado = isAvisoCaducado(aviso);
+    <div class="form-card aviso-form-card">
+      <h3>${editando ? 'Editar aviso' : 'Nuevo aviso'}</h3>
 
-        return `
-          <article class="
-            aviso-card
-            ${aviso.destacado ? 'aviso-destacado' : ''}
-            aviso-prioridad-${safe(aviso.prioridad)}
-            ${caducado ? 'aviso-caducado' : ''}
-          ">
+      <form id="avisoForm">
+        <input type="hidden" id="aviso_id" value="${aviso?.id || ''}" />
 
-            <div class="aviso-top">
-              <span class="aviso-tipo">
-                ${getTipoLabel(aviso.tipo)}
-              </span>
+        <div class="form-grid">
 
-              <span class="aviso-prioridad">
-                ${getPrioridadLabel(aviso.prioridad)}
-              </span>
+          <div class="full-width">
+            <label>Título *</label>
+            <input type="text" id="aviso_titulo" required value="${aviso?.titulo || ''}" />
+          </div>
 
-              ${aviso.destacado ? `
-                <span class="aviso-star">
-                  ⭐ Destacado
-                </span>
-              ` : ''}
+          <div>
+            <label>Tipo</label>
+            <select id="aviso_tipo">
+              <option value="aviso" ${aviso?.tipo === 'aviso' ? 'selected' : ''}>📢 Aviso</option>
+              <option value="noticia" ${aviso?.tipo === 'noticia' ? 'selected' : ''}>📰 Noticia</option>
+              <option value="evento" ${aviso?.tipo === 'evento' ? 'selected' : ''}>📅 Evento</option>
+              <option value="formacion" ${aviso?.tipo === 'formacion' ? 'selected' : ''}>🎓 Formación</option>
+              <option value="oportunidad" ${aviso?.tipo === 'oportunidad' ? 'selected' : ''}>💼 Oportunidad</option>
+              <option value="subvencion" ${aviso?.tipo === 'subvencion' ? 'selected' : ''}>💰 Subvención</option>
+              <option value="urgente" ${aviso?.tipo === 'urgente' ? 'selected' : ''}>⚠️ Urgente</option>
+            </select>
+          </div>
 
-              ${caducado ? `
-                <span class="aviso-caducidad-badge">
-                  ⏳ Caducado
-                </span>
-              ` : ''}
-            </div>
+          <div>
+            <label>Prioridad</label>
+            <select id="aviso_prioridad">
+              <option value="normal" ${aviso?.prioridad === 'normal' ? 'selected' : ''}>Normal</option>
+              <option value="importante" ${aviso?.prioridad === 'importante' ? 'selected' : ''}>Importante</option>
+              <option value="critica" ${aviso?.prioridad === 'critica' ? 'selected' : ''}>Crítica</option>
+            </select>
+          </div>
 
-            <h3>${safe(aviso.titulo)}</h3>
+          <div>
+            <label>Destinatario</label>
+            <select id="aviso_destinatario">
+              <option value="todos" ${aviso?.destinatario === 'todos' ? 'selected' : ''}>Todos</option>
+              <option value="asociados" ${aviso?.destinatario === 'asociados' ? 'selected' : ''}>Asociados</option>
+              <option value="junta" ${aviso?.destinatario === 'junta' ? 'selected' : ''}>Junta Directiva</option>
+              <option value="presidencia" ${aviso?.destinatario === 'presidencia' ? 'selected' : ''}>Presidencia</option>
+              <option value="tesoreria" ${aviso?.destinatario === 'tesoreria' ? 'selected' : ''}>Tesorería</option>
+              <option value="secretaria" ${aviso?.destinatario === 'secretaria' ? 'selected' : ''}>Secretaría</option>
+            </select>
+          </div>
 
-            <p>${safe(aviso.contenido)}</p>
+          <div>
+            <label>Fecha de caducidad</label>
+            <input type="date" id="aviso_fecha_caducidad" value="${aviso?.fecha_caducidad || ''}" />
+          </div>
 
-            <div class="aviso-meta">
-              <span>
-                👥 ${getDestinatarioLabel(aviso.destinatario)}
-              </span>
+          <div>
+            <label>Destacado</label>
+            <select id="aviso_destacado">
+              <option value="false" ${!aviso?.destacado ? 'selected' : ''}>No</option>
+              <option value="true" ${aviso?.destacado ? 'selected' : ''}>Sí</option>
+            </select>
+          </div>
 
-              ${
-                aviso.fecha_caducidad
-                  ? `<span>📅 Caduca: ${new Date(aviso.fecha_caducidad).toLocaleDateString('es-ES')}</span>`
-                  : ''
-              }
+          <div>
+            <label>Visible</label>
+            <select id="aviso_visible">
+              <option value="true" ${aviso?.visible !== false ? 'selected' : ''}>Sí</option>
+              <option value="false" ${aviso?.visible === false ? 'selected' : ''}>No</option>
+            </select>
+          </div>
 
-              <span>
-                🕒 ${aviso.created_at ? new Date(aviso.created_at).toLocaleString('es-ES') : ''}
-              </span>
-            </div>
+          <div class="full-width">
+            <label>Imagen del aviso</label>
+            <input type="file" id="aviso_imagen" accept="image/*" />
 
             ${
-              aviso.enlace
-                ? `
-                  <a
-                    href="${safe(aviso.enlace)}"
-                    target="_blank"
-                    rel="noopener"
-                    class="aviso-link"
-                  >
-                    🔗 Ver enlace
-                  </a>
-                `
+              aviso?.imagen_url
+                ? `<div class="aviso-preview-wrap">
+                    <p class="helper">Imagen actual:</p>
+                    <img src="${aviso.imagen_url}" alt="Imagen actual del aviso" class="aviso-form-preview" />
+                  </div>`
                 : ''
             }
+          </div>
 
-            ${esSuperadmin ? `
-              <div class="table-actions" style="margin-top:14px;">
-                <button
-                  class="secondary-btn editarAvisoBtn"
-                  data-id="${aviso.id}"
-                >
-                  Editar
-                </button>
+          <div class="full-width">
+            <label>Enlace opcional</label>
+            <input type="url" id="aviso_enlace" placeholder="https://..." value="${aviso?.enlace || ''}" />
+          </div>
 
-                <button
-                  class="secondary-btn toggleDestacadoAvisoBtn"
-                  data-id="${aviso.id}"
-                  data-destacado="${aviso.destacado}"
-                >
-                  ${aviso.destacado ? 'Quitar destacado' : 'Destacar'}
-                </button>
+          <div class="full-width">
+            <label>Contenido *</label>
+            <textarea id="aviso_contenido" rows="6" required>${aviso?.contenido || ''}</textarea>
+          </div>
 
-                <button
-                  class="secondary-btn toggleVisibleAvisoBtn"
-                  data-id="${aviso.id}"
-                  data-visible="${aviso.visible}"
-                >
-                  ${aviso.visible ? 'Ocultar' : 'Mostrar'}
-                </button>
+        </div>
 
-                <button
-                  class="danger-btn eliminarAvisoBtn"
-                  data-id="${aviso.id}"
-                >
-                  Eliminar
-                </button>
-              </div>
-            ` : ''}
-          </article>
-        `;
-      }).join('')}
+        <div class="top-actions" style="margin-top:16px;">
+          <button type="submit">
+            ${editando ? 'Guardar cambios' : 'Publicar aviso'}
+          </button>
+
+          <button type="button" id="cancelarAvisoBtn" class="secondary-btn">
+            Cancelar
+          </button>
+        </div>
+      </form>
+
+      <div id="avisoMsg" class="message"></div>
     </div>
   `;
 }
 
-export async function renderAvisosView() {
-  setView('Avisos internos', '<p class="loading">Cargando avisos...</p>');
+export function activarFormularioAviso(user, onSuccess) {
+  const form = document.getElementById('avisoForm');
 
-  const { user, role } = await getCurrentUserAndRole();
-  const esSuperadmin = role === 'superadmin';
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  let query = supabase
-    .from('avisos')
-    .select('*')
-    .order('destacado', { ascending: false })
-    .order('created_at', { ascending: false });
+    const msg = document.getElementById('avisoMsg');
+    msg.textContent = 'Guardando aviso...';
+    msg.className = 'message';
 
-  if (!esSuperadmin) {
-    const hoy = new Date().toISOString().slice(0, 10);
+    const id = document.getElementById('aviso_id').value;
+    const file = document.getElementById('aviso_imagen')?.files?.[0] || null;
 
-    query = query
-      .eq('visible', true)
-      .or(`fecha_caducidad.is.null,fecha_caducidad.gte.${hoy}`);
-  }
+    let imagenUrl = null;
 
-  const { data: avisos, error } = await query;
-
-  if (error) {
-    setView(
-      'Avisos internos',
-      `<p class="error">Error al cargar avisos: ${error.message}</p>`
-    );
-    return;
-  }
-
-  const listaAvisos = avisos || [];
-
-  setView('Avisos internos', `
-    <div class="asociado-header">
-      <div>
-        <p>
-          Noticias, avisos y comunicaciones internas de ASUME.
-        </p>
-      </div>
-
-      ${esSuperadmin ? `
-        <div class="table-actions">
-          <button id="nuevoAvisoBtn">
-            ➕ Nuevo aviso
-          </button>
-        </div>
-      ` : ''}
-    </div>
-
-    <div id="nuevoAvisoBox"></div>
-
-    ${getAvisosHTML(listaAvisos, esSuperadmin)}
-  `);
-
-  document.getElementById('nuevoAvisoBtn')?.addEventListener('click', () => {
-    const box = document.getElementById('nuevoAvisoBox');
-
-    if (!box) return;
-
-    box.innerHTML = getAvisoFormHTML();
-
-    activarFormularioAviso(user, () => {
-      renderAvisosView();
-    });
-
-    document.getElementById('cancelarAvisoBtn')?.addEventListener('click', () => {
-      box.innerHTML = '';
-    });
-  });
-
-  document.querySelectorAll('.editarAvisoBtn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = Number(btn.dataset.id);
-      const aviso = listaAvisos.find(item => item.id === id);
-
-      const box = document.getElementById('nuevoAvisoBox');
-
-      if (!box || !aviso) return;
-
-      box.innerHTML = getAvisoFormHTML(aviso);
-
-      activarFormularioAviso(user, () => {
-        renderAvisosView();
-      });
-
-      document.getElementById('cancelarAvisoBtn')?.addEventListener('click', () => {
-        box.innerHTML = '';
-      });
-
-      box.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    });
-  });
-
-  document.querySelectorAll('.toggleDestacadoAvisoBtn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-      const destacadoActual = btn.dataset.destacado === 'true';
-
-      const { error: updateError } = await supabase
-        .from('avisos')
-        .update({ destacado: !destacadoActual })
-        .eq('id', id);
-
-      if (updateError) {
-        alert('Error al actualizar aviso: ' + updateError.message);
-        return;
+    try {
+      if (file) {
+        msg.textContent = 'Subiendo imagen...';
+        imagenUrl = await subirImagenAviso(file, user?.id);
       }
+    } catch (error) {
+      msg.textContent = 'Error al subir imagen: ' + error.message;
+      msg.className = 'message error';
+      return;
+    }
 
-      renderAvisosView();
-    });
-  });
+    const payload = {
+      titulo: document.getElementById('aviso_titulo').value.trim(),
+      contenido: document.getElementById('aviso_contenido').value.trim(),
+      tipo: document.getElementById('aviso_tipo').value,
+      prioridad: document.getElementById('aviso_prioridad').value,
+      destinatario: document.getElementById('aviso_destinatario').value,
+      fecha_caducidad: document.getElementById('aviso_fecha_caducidad').value || null,
+      enlace: document.getElementById('aviso_enlace').value.trim() || null,
+      destacado: document.getElementById('aviso_destacado').value === 'true',
+      visible: document.getElementById('aviso_visible').value === 'true'
+    };
 
-  document.querySelectorAll('.toggleVisibleAvisoBtn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-      const visibleActual = btn.dataset.visible === 'true';
+    if (imagenUrl) {
+      payload.imagen_url = imagenUrl;
+    }
 
-      const { error: updateError } = await supabase
+    if (!payload.titulo || !payload.contenido) {
+      msg.textContent = 'Faltan campos obligatorios.';
+      msg.className = 'message error';
+      return;
+    }
+
+    let result;
+
+    if (id) {
+      result = await supabase
         .from('avisos')
-        .update({ visible: !visibleActual })
-        .eq('id', id);
-
-      if (updateError) {
-        alert('Error al actualizar visibilidad: ' + updateError.message);
-        return;
-      }
-
-      renderAvisosView();
-    });
-  });
-
-  document.querySelectorAll('.eliminarAvisoBtn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const id = Number(btn.dataset.id);
-
-      const ok = confirm(
-        '¿Seguro que quieres eliminar definitivamente este aviso?'
-      );
-
-      if (!ok) return;
-
-      const { error: deleteError } = await supabase
+        .update(payload)
+        .eq('id', Number(id));
+    } else {
+      result = await supabase
         .from('avisos')
-        .delete()
-        .eq('id', id);
+        .insert([{
+          ...payload,
+          created_by: user?.id || null
+        }]);
+    }
 
-      if (deleteError) {
-        alert('Error al eliminar aviso: ' + deleteError.message);
-        return;
+    if (result.error) {
+      msg.textContent = 'Error al guardar aviso: ' + result.error.message;
+      msg.className = 'message error';
+      return;
+    }
+
+    msg.textContent = id
+      ? 'Aviso actualizado correctamente'
+      : 'Aviso publicado correctamente';
+
+    msg.className = 'message success';
+
+    setTimeout(() => {
+      if (typeof onSuccess === 'function') {
+        onSuccess();
       }
-
-      renderAvisosView();
-    });
+    }, 600);
   });
 }
