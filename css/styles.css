@@ -958,3 +958,21 @@ input:focus {
   }
 
 }
+/* ===============================
+   IMÁGENES EN AVISOS
+=============================== */
+
+.aviso-image-wrap {
+  margin: 16px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #334155;
+  background: rgba(2,6,23,0.45);
+}
+
+.aviso-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  display: block;
+}
