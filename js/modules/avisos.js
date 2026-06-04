@@ -73,9 +73,13 @@ function getDestinatarioLabel(destinatario) {
   return map[destinatario] || 'Todos';
 }
 
-function getAvisoCardHTML(aviso, esSuperadmin = false) {
+function getAvisoCardHTML(
+  aviso,
+  esSuperadmin = false,
+  avisosLeidos = []
+) {
   const caducado = isAvisoCaducado(aviso);
-
+const leido = avisosLeidos.includes(aviso.id);
   return `
     <article class="aviso-card ${aviso.destacado ? 'aviso-destacado' : ''} ${caducado ? 'aviso-caducado' : ''}">
 
@@ -102,7 +106,10 @@ function getAvisoCardHTML(aviso, esSuperadmin = false) {
       ` : ''}
 
       <h3>${safe(aviso.titulo)}</h3>
-
+${leido
+  ? `<div class="aviso-leido">✓✓ Leído</div>`
+  : `<div class="aviso-no-leido">🔔 Nuevo</div>`
+}
       <p>${safe(aviso.contenido)}</p>
 
       <small>
@@ -166,7 +173,11 @@ function getSeccionAvisosHTML(titulo, avisos, esSuperadmin) {
   `;
 }
 
-function getAvisosHTML(avisos = [], esSuperadmin = false) {
+function getAvisosHTML(
+  avisos = [],
+  esSuperadmin = false,
+  avisosLeidos = []
+){
   if (!avisos.length) {
     return `
       <div class="form-card">
@@ -235,6 +246,9 @@ export async function renderAvisosView() {
   setView('Avisos internos', '<p class="loading">Cargando avisos...</p>');
 
   const { user, role } = await getCurrentUserAndRole();
+  const avisosLeidos = user
+  ? await getAvisosLeidos(user.id)
+  : [];
   const esSuperadmin = role === 'superadmin';
 
   let query = supabase
@@ -280,7 +294,7 @@ if (!esSuperadmin) {
 
     <div id="nuevoAvisoBox"></div>
 
-    ${getAvisosHTML(listaAvisos, esSuperadmin)}
+   ${getAvisosHTML(listaAvisos, esSuperadmin, avisosLeidos)}
   `);
 
   document.getElementById('nuevoAvisoBtn')?.addEventListener('click', () => {
