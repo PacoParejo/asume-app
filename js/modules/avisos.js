@@ -231,13 +231,14 @@ export async function renderAvisosView() {
     .order('destacado', { ascending: false })
     .order('created_at', { ascending: false });
 
-  if (!esSuperadmin) {
-    const hoy = new Date().toISOString().slice(0, 10);
+if (!esSuperadmin) {
+  const hoy = new Date().toISOString().slice(0, 10);
 
-    query = query
-      .eq('visible', true)
-      .or(`fecha_caducidad.is.null,fecha_caducidad.gte.${hoy}`);
-  }
+  query = query
+    .eq('visible', true)
+    .in('destinatario', ['todos', 'asociados'])
+    .or(`fecha_caducidad.is.null,fecha_caducidad.gte.${hoy}`);
+}
 
   const { data: avisos, error } = await query;
 
