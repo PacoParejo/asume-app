@@ -167,7 +167,7 @@ function getSeccionAvisosHTML(titulo, avisos, esSuperadmin) {
       <h3 class="avisos-section-title">${titulo}</h3>
 
       <div class="avisos-grid">
-        ${avisos.map(aviso => getAvisoCardHTML(aviso, esSuperadmin)).join('')}
+        ${avisos.map(aviso => getAvisoCardHTML(aviso, esSuperadmin, avisosLeidos)).join('')}
       </div>
     </section>
   `;
