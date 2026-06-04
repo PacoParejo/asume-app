@@ -14,7 +14,6 @@ function limpiarNombreArchivo(nombre) {
 async function subirImagenAviso(file, userId) {
   if (!file) return null;
 
-  const extension = file.name.split('.').pop();
   const nombreLimpio = limpiarNombreArchivo(file.name);
   const ruta = `${userId || 'anonimo'}/${Date.now()}-${nombreLimpio}`;
 
@@ -210,10 +209,7 @@ export function activarFormularioAviso(user, onSuccess) {
     } else {
       result = await supabase
         .from('avisos')
-        .insert([{
-          ...payload,
-          created_by: user?.id || null
-        }]);
+        .insert([payload]);
     }
 
     if (result.error) {
