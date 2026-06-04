@@ -218,7 +218,19 @@ function getAvisosHTML(avisos = [], esSuperadmin = false) {
     }).join('')}
   `;
 }
+async function getAvisosLeidos(usuarioId) {
+  const { data, error } = await supabase
+    .from('avisos_leidos')
+    .select('aviso_id')
+    .eq('usuario_id', usuarioId);
 
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data.map(item => item.aviso_id);
+}
 export async function renderAvisosView() {
   setView('Avisos internos', '<p class="loading">Cargando avisos...</p>');
 
