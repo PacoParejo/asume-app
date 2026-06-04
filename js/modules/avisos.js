@@ -60,6 +60,112 @@ function getTipoLabel(tipo) {
   return map[tipo] || '📢 Aviso';
 }
 
+function getDestinatarioLabel(destinatario) {
+  const map = {
+    todos: 'Todos',
+    asociados: 'Asociados',
+    junta: 'Junta Directiva',
+    presidencia: 'Presidencia',
+    tesoreria: 'Tesorería',
+    secretaria: 'Secretaría'
+  };
+
+  return map[destinatario] || 'Todos';
+}
+
+function getAvisoCardHTML(aviso, esSuperadmin = false) {
+  const caducado = isAvisoCaducado(aviso);
+
+  return `
+    <article class="aviso-card ${aviso.destacado ? 'aviso-destacado' : ''} ${caducado ? 'aviso-caducado' : ''}">
+
+      <div class="aviso-top">
+        <span class="aviso-tipo">${getTipoLabel(aviso.tipo)}</span>
+
+        ${aviso.destacado ? `
+          <span class="aviso-star">⭐ Destacado</span>
+        ` : ''}
+
+        ${caducado ? `
+          <span class="aviso-caducidad-badge">⏳ Caducado</span>
+        ` : ''}
+      </div>
+
+      ${aviso.imagen_url ? `
+        <div class="aviso-image-wrap">
+          <img
+            src="${safe(aviso.imagen_url)}"
+            alt="${safe(aviso.titulo)}"
+            class="aviso-image"
+          />
+        </div>
+      ` : ''}
+
+      <h3>${safe(aviso.titulo)}</h3>
+
+      <p>${safe(aviso.contenido)}</p>
+
+      <small>
+        ${aviso.created_at ? new Date(aviso.created_at).toLocaleString('es-ES') : ''}
+      </small>
+
+      ${aviso.enlace ? `
+        <br />
+        <a
+          href="${safe(aviso.enlace)}"
+          target="_blank"
+          rel="noopener"
+          class="aviso-link"
+        >
+          🔗 Ver enlace
+        </a>
+      ` : ''}
+
+      ${esSuperadmin ? `
+        <div class="table-actions" style="margin-top:14px;">
+          <button class="secondary-btn editarAvisoBtn" data-id="${aviso.id}">
+            Editar
+          </button>
+
+          <button
+            class="secondary-btn toggleDestacadoAvisoBtn"
+            data-id="${aviso.id}"
+            data-destacado="${aviso.destacado}"
+          >
+            ${aviso.destacado ? 'Quitar destacado' : 'Destacar'}
+          </button>
+
+          <button
+            class="secondary-btn toggleVisibleAvisoBtn"
+            data-id="${aviso.id}"
+            data-visible="${aviso.visible}"
+          >
+            ${aviso.visible ? 'Ocultar' : 'Mostrar'}
+          </button>
+
+          <button class="danger-btn eliminarAvisoBtn" data-id="${aviso.id}">
+            Eliminar
+          </button>
+        </div>
+      ` : ''}
+    </article>
+  `;
+}
+
+function getSeccionAvisosHTML(titulo, avisos, esSuperadmin) {
+  if (!avisos.length) return '';
+
+  return `
+    <section class="avisos-section">
+      <h3 class="avisos-section-title">${titulo}</h3>
+
+      <div class="avisos-grid">
+        ${avisos.map(aviso => getAvisoCardHTML(aviso, esSuperadmin)).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function getAvisosHTML(avisos = [], esSuperadmin = false) {
   if (!avisos.length) {
     return `
@@ -70,95 +176,46 @@ function getAvisosHTML(avisos = [], esSuperadmin = false) {
     `;
   }
 
+  const destacados = avisos.filter(aviso => aviso.destacado);
+  const normales = avisos.filter(aviso => !aviso.destacado);
+
+  const grupos = [
+    {
+      key: 'todos',
+      titulo: '🌍 Avisos para todos'
+    },
+    {
+      key: 'asociados',
+      titulo: '👥 Avisos para asociados'
+    },
+    {
+      key: 'junta',
+      titulo: '🏛️ Avisos para Junta Directiva'
+    },
+    {
+      key: 'presidencia',
+      titulo: '👔 Avisos para Presidencia'
+    },
+    {
+      key: 'tesoreria',
+      titulo: '💶 Avisos para Tesorería'
+    },
+    {
+      key: 'secretaria',
+      titulo: '📝 Avisos para Secretaría'
+    }
+  ];
+
   return `
-    <div class="avisos-grid">
-      ${avisos.map(aviso => {
-        const caducado = isAvisoCaducado(aviso);
+    ${getSeccionAvisosHTML('⭐ Avisos destacados', destacados, esSuperadmin)}
 
-        return `
-          <article class="aviso-card ${aviso.destacado ? 'aviso-destacado' : ''} ${caducado ? 'aviso-caducado' : ''}">
+    ${grupos.map(grupo => {
+      const avisosGrupo = normales.filter(aviso =>
+        (aviso.destinatario || 'todos') === grupo.key
+      );
 
-            <div class="aviso-top">
-              <span class="aviso-tipo">${getTipoLabel(aviso.tipo)}</span>
-
-              ${aviso.destacado ? `
-                <span class="aviso-star">⭐ Destacado</span>
-              ` : ''}
-
-              ${caducado ? `
-                <span class="aviso-caducidad-badge">⏳ Caducado</span>
-              ` : ''}
-            </div>
-
-            ${aviso.imagen_url ? `
-              <div class="aviso-image-wrap">
-                <img
-                  src="${safe(aviso.imagen_url)}"
-                  alt="${safe(aviso.titulo)}"
-                  class="aviso-image"
-                />
-              </div>
-            ` : ''}
-
-            <h3>${safe(aviso.titulo)}</h3>
-
-            <p>${safe(aviso.contenido)}</p>
-
-            <small>
-              ${aviso.created_at ? new Date(aviso.created_at).toLocaleString('es-ES') : ''}
-            </small>
-
-            ${aviso.enlace ? `
-              <br />
-              <a
-                href="${safe(aviso.enlace)}"
-                target="_blank"
-                rel="noopener"
-                class="aviso-link"
-              >
-                🔗 Ver enlace
-              </a>
-            ` : ''}
-
-            ${esSuperadmin ? `
-              <div class="table-actions" style="margin-top:14px;">
-
-                <button
-                  class="secondary-btn editarAvisoBtn"
-                  data-id="${aviso.id}"
-                >
-                  Editar
-                </button>
-
-                <button
-                  class="secondary-btn toggleDestacadoAvisoBtn"
-                  data-id="${aviso.id}"
-                  data-destacado="${aviso.destacado}"
-                >
-                  ${aviso.destacado ? 'Quitar destacado' : 'Destacar'}
-                </button>
-
-                <button
-                  class="secondary-btn toggleVisibleAvisoBtn"
-                  data-id="${aviso.id}"
-                  data-visible="${aviso.visible}"
-                >
-                  ${aviso.visible ? 'Ocultar' : 'Mostrar'}
-                </button>
-
-                <button
-                  class="danger-btn eliminarAvisoBtn"
-                  data-id="${aviso.id}"
-                >
-                  Eliminar
-                </button>
-
-              </div>
-            ` : ''}
-          </article>
-        `;
-      }).join('')}
-    </div>
+      return getSeccionAvisosHTML(grupo.titulo, avisosGrupo, esSuperadmin);
+    }).join('')}
   `;
 }
 
@@ -197,6 +254,7 @@ export async function renderAvisosView() {
   setView('Avisos internos', `
     <div class="asociado-header">
       <div>
+        <h3>Avisos internos</h3>
         <p>Noticias, avisos y comunicaciones internas de ASUME.</p>
       </div>
 
