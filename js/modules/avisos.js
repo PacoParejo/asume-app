@@ -60,56 +60,32 @@ function getTipoLabel(tipo) {
   return map[tipo] || '📢 Aviso';
 }
 
-function getDestinatarioLabel(destinatario) {
-  const map = {
-    todos: 'Todos',
-    asociados: 'Asociados',
-    junta: 'Junta Directiva',
-    presidencia: 'Presidencia',
-    tesoreria: 'Tesorería',
-    secretaria: 'Secretaría'
-  };
-
-  return map[destinatario] || 'Todos';
-}
-
-function getAvisoCardHTML(
-  aviso,
-  esSuperadmin = false,
-  avisosLeidos = []
-) {
+function getAvisoCardHTML(aviso, esSuperadmin = false, avisosLeidos = []) {
   const caducado = isAvisoCaducado(aviso);
-const leido = avisosLeidos.includes(aviso.id);
+  const leido = avisosLeidos.includes(aviso.id);
+
   return `
     <article class="aviso-card ${aviso.destacado ? 'aviso-destacado' : ''} ${caducado ? 'aviso-caducado' : ''}">
-
       <div class="aviso-top">
         <span class="aviso-tipo">${getTipoLabel(aviso.tipo)}</span>
 
-        ${aviso.destacado ? `
-          <span class="aviso-star">⭐ Destacado</span>
-        ` : ''}
-
-        ${caducado ? `
-          <span class="aviso-caducidad-badge">⏳ Caducado</span>
-        ` : ''}
+        ${aviso.destacado ? '<span class="aviso-star">⭐ Destacado</span>' : ''}
+        ${caducado ? '<span class="aviso-caducidad-badge">⏳ Caducado</span>' : ''}
       </div>
 
       ${aviso.imagen_url ? `
         <div class="aviso-image-wrap">
-          <img
-            src="${safe(aviso.imagen_url)}"
-            alt="${safe(aviso.titulo)}"
-            class="aviso-image"
-          />
+          <img src="${safe(aviso.imagen_url)}" alt="${safe(aviso.titulo)}" class="aviso-image" />
         </div>
       ` : ''}
 
       <h3>${safe(aviso.titulo)}</h3>
-${leido
-  ? `<div class="aviso-leido">✓✓ Leído</div>`
-  : `<div class="aviso-no-leido">🔔 Nuevo</div>`
-}
+
+      ${leido
+        ? '<div class="aviso-leido">✓✓ Leído</div>'
+        : '<div class="aviso-no-leido">🔔 Nuevo</div>'
+      }
+
       <p>${safe(aviso.contenido)}</p>
 
       <small>
@@ -118,48 +94,31 @@ ${leido
 
       ${aviso.enlace ? `
         <br />
-        <a
-          href="${safe(aviso.enlace)}"
-          target="_blank"
-          rel="noopener"
-          class="aviso-link"
-        >
+        <a href="${safe(aviso.enlace)}" target="_blank" rel="noopener" class="aviso-link">
           🔗 Ver enlace
         </a>
       ` : ''}
 
       ${esSuperadmin ? `
         <div class="table-actions" style="margin-top:14px;">
-          <button class="secondary-btn editarAvisoBtn" data-id="${aviso.id}">
-            Editar
-          </button>
+          <button class="secondary-btn editarAvisoBtn" data-id="${aviso.id}">Editar</button>
 
-          <button
-            class="secondary-btn toggleDestacadoAvisoBtn"
-            data-id="${aviso.id}"
-            data-destacado="${aviso.destacado}"
-          >
+          <button class="secondary-btn toggleDestacadoAvisoBtn" data-id="${aviso.id}" data-destacado="${aviso.destacado}">
             ${aviso.destacado ? 'Quitar destacado' : 'Destacar'}
           </button>
 
-          <button
-            class="secondary-btn toggleVisibleAvisoBtn"
-            data-id="${aviso.id}"
-            data-visible="${aviso.visible}"
-          >
+          <button class="secondary-btn toggleVisibleAvisoBtn" data-id="${aviso.id}" data-visible="${aviso.visible}">
             ${aviso.visible ? 'Ocultar' : 'Mostrar'}
           </button>
 
-          <button class="danger-btn eliminarAvisoBtn" data-id="${aviso.id}">
-            Eliminar
-          </button>
+          <button class="danger-btn eliminarAvisoBtn" data-id="${aviso.id}">Eliminar</button>
         </div>
       ` : ''}
     </article>
   `;
 }
 
-function getSeccionAvisosHTML(titulo, avisos, esSuperadmin) {
+function getSeccionAvisosHTML(titulo, avisos, esSuperadmin, avisosLeidos = []) {
   if (!avisos.length) return '';
 
   return `
@@ -167,17 +126,15 @@ function getSeccionAvisosHTML(titulo, avisos, esSuperadmin) {
       <h3 class="avisos-section-title">${titulo}</h3>
 
       <div class="avisos-grid">
-        ${avisos.map(aviso => getAvisoCardHTML(aviso, esSuperadmin, avisosLeidos)).join('')}
+        ${avisos.map(aviso =>
+          getAvisoCardHTML(aviso, esSuperadmin, avisosLeidos)
+        ).join('')}
       </div>
     </section>
   `;
 }
 
-function getAvisosHTML(
-  avisos = [],
-  esSuperadmin = false,
-  avisosLeidos = []
-){
+function getAvisosHTML(avisos = [], esSuperadmin = false, avisosLeidos = []) {
   if (!avisos.length) {
     return `
       <div class="form-card">
@@ -191,44 +148,32 @@ function getAvisosHTML(
   const normales = avisos.filter(aviso => !aviso.destacado);
 
   const grupos = [
-    {
-      key: 'todos',
-      titulo: '🌍 Avisos para todos'
-    },
-    {
-      key: 'asociados',
-      titulo: '👥 Avisos para asociados'
-    },
-    {
-      key: 'junta',
-      titulo: '🏛️ Avisos para Junta Directiva'
-    },
-    {
-      key: 'presidencia',
-      titulo: '👔 Avisos para Presidencia'
-    },
-    {
-      key: 'tesoreria',
-      titulo: '💶 Avisos para Tesorería'
-    },
-    {
-      key: 'secretaria',
-      titulo: '📝 Avisos para Secretaría'
-    }
+    { key: 'todos', titulo: '🌍 Avisos para todos' },
+    { key: 'asociados', titulo: '👥 Avisos para asociados' },
+    { key: 'junta', titulo: '🏛️ Avisos para Junta Directiva' },
+    { key: 'presidencia', titulo: '👔 Avisos para Presidencia' },
+    { key: 'tesoreria', titulo: '💶 Avisos para Tesorería' },
+    { key: 'secretaria', titulo: '📝 Avisos para Secretaría' }
   ];
 
   return `
-    ${getSeccionAvisosHTML('⭐ Avisos destacados', destacados, esSuperadmin)}
+    ${getSeccionAvisosHTML('⭐ Avisos destacados', destacados, esSuperadmin, avisosLeidos)}
 
     ${grupos.map(grupo => {
       const avisosGrupo = normales.filter(aviso =>
         (aviso.destinatario || 'todos') === grupo.key
       );
 
-      return getSeccionAvisosHTML(grupo.titulo, avisosGrupo, esSuperadmin);
+      return getSeccionAvisosHTML(
+        grupo.titulo,
+        avisosGrupo,
+        esSuperadmin,
+        avisosLeidos
+      );
     }).join('')}
   `;
 }
+
 async function getAvisosLeidos(usuarioId) {
   const { data, error } = await supabase
     .from('avisos_leidos')
@@ -242,13 +187,16 @@ async function getAvisosLeidos(usuarioId) {
 
   return data.map(item => item.aviso_id);
 }
+
 export async function renderAvisosView() {
   setView('Avisos internos', '<p class="loading">Cargando avisos...</p>');
 
   const { user, role } = await getCurrentUserAndRole();
+
   const avisosLeidos = user
-  ? await getAvisosLeidos(user.id)
-  : [];
+    ? await getAvisosLeidos(user.id)
+    : [];
+
   const esSuperadmin = role === 'superadmin';
 
   let query = supabase
@@ -257,14 +205,14 @@ export async function renderAvisosView() {
     .order('destacado', { ascending: false })
     .order('created_at', { ascending: false });
 
-if (!esSuperadmin) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  if (!esSuperadmin) {
+    const hoy = new Date().toISOString().slice(0, 10);
 
-  query = query
-    .eq('visible', true)
-    .in('destinatario', ['todos', 'asociados'])
-    .or(`fecha_caducidad.is.null,fecha_caducidad.gte.${hoy}`);
-}
+    query = query
+      .eq('visible', true)
+      .in('destinatario', ['todos', 'asociados'])
+      .or(`fecha_caducidad.is.null,fecha_caducidad.gte.${hoy}`);
+  }
 
   const { data: avisos, error } = await query;
 
@@ -294,7 +242,7 @@ if (!esSuperadmin) {
 
     <div id="nuevoAvisoBox"></div>
 
-   ${getAvisosHTML(listaAvisos, esSuperadmin, avisosLeidos)}
+    ${getAvisosHTML(listaAvisos, esSuperadmin, avisosLeidos)}
   `);
 
   document.getElementById('nuevoAvisoBtn')?.addEventListener('click', () => {
