@@ -1075,3 +1075,22 @@ input:focus {
   border: 1px solid rgba(56,189,248,0.3);
   color: #38bdf8;
 }
+.aviso-leido,
+.aviso-no-leido {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.aviso-leido {
+  background: rgba(34,197,94,0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34,197,94,0.35);
+}
+
+.aviso-no-leido {
+  background: rgba(248,113,113,0.15);
+  color: #f87171;
+  border: 1px solid rgba(248,113,113,0.35);
+}
