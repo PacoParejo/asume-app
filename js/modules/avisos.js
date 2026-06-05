@@ -68,7 +68,10 @@ function getAvisoCardHTML(aviso, esSuperadmin = false, avisosLeidos = []) {
     <article class="aviso-card ${aviso.destacado ? 'aviso-destacado' : ''} ${caducado ? 'aviso-caducado' : ''}">
       <div class="aviso-top">
         <span class="aviso-tipo">${getTipoLabel(aviso.tipo)}</span>
-
+        ${leido
+  ? '<span class="aviso-leido">✓✓ Leído</span>'
+  : '<span class="aviso-no-leido">🔔 Nuevo</span>'
+}
         ${aviso.destacado ? '<span class="aviso-star">⭐ Destacado</span>' : ''}
         ${caducado ? '<span class="aviso-caducidad-badge">⏳ Caducado</span>' : ''}
       </div>
